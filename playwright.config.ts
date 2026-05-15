@@ -6,7 +6,8 @@ const expectTimeout = Number(process.env.EXPECT_TIMEOUT_MS ?? 10_000);
 const isCi = process.env.CI === 'true';
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: './tests-e2e/tests/specs',
+  testMatch: '**/*.e2e.ts',
   fullyParallel: false,
   forbidOnly: isCi,
   retries: isCi ? 2 : 0,
@@ -34,6 +35,24 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        headless: process.env.HEADLESS !== 'false',
+        locale: 'en-US',
+        timezoneId: 'Europe/Warsaw'
+      }
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        headless: process.env.HEADLESS !== 'false',
+        locale: 'en-US',
+        timezoneId: 'Europe/Warsaw'
+      }
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
         headless: process.env.HEADLESS !== 'false',
         locale: 'en-US',
         timezoneId: 'Europe/Warsaw'

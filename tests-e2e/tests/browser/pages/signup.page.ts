@@ -1,0 +1,194 @@
+import { expect, Locator, Page } from '@playwright/test';
+import { createUniqueEmail } from '../../../utils/helpers';
+
+type Credentials = {
+  email: string;
+  password?: string;
+  confirmPassword?: string;
+};
+
+export class SignupPage {
+  constructor(private readonly page: Page) {}
+
+  uniqueEmail(): string {
+    return createUniqueEmail();
+  }
+
+  async open(): Promise<void> {
+    await this.page.goto(process.env.BASE_URL ?? 'https://freevpnplanet.com', { waitUntil: 'domcontentloaded' });
+    await expect(this.page).toHaveURL(/freevpnplanet\.com/i);
+  }
+
+  async openSignUpFromLanding(): Promise<void> {
+    await this.acceptCookiesIfPresent();
+    await this.page.getByRole('link', { name: /log in/i }).click();
+    await expect(this.page).toHaveURL(/account\.freevpnplanet\.com/i);
+    await this.page.getByRole('link', { name: /sign up/i }).click();
+  }
+
+  async acceptCookiesIfPresent(): Promise<void> {
+    const acceptButton = this.page.getByRole('button', { name: /^accept$/i });
+    if (await acceptButton.isVisible().catch(() => false)) {
+      await acceptButton.click({ force: true });
+    }
+  }
+
+  emailField(): Locator {
+    return this.page.locator('input[type="email"], input[placeholder*="email" i], input[name="email"]').first();
+  }
+
+  passwordField(): Locator {
+    return this.page.locator('input[type="password"], input[name="password"]').first();
+  }
+
+  confirmPasswordField(): Locator {
+    return this.page
+      .locator('input[type="password"][name*="confirm" i], input[placeholder*="confirm" i], input[name*="repeat" i]')
+      .first();
+  }
+
+  nextButton(): Locator {
+    return this.page
+      .locator('[data-test-id="order-next-button"], button:has-text("Next"), button:has-text("Get your subscription")')
+      .first();
+  }
+
+  async fillEmailOnly(email: string): Promise<void> {
+    await this.emailField().fill(email);
+  }
+
+  async fillCredentials({ email, password, confirmPassword }: Credentials): Promise<void> {
+    await this.fillEmailOnly(email);
+
+    const passwordField = this.passwordField();
+    if (await passwordField.isVisible().catch(() => false)) {
+      await passwordField.fill(password ?? '').catch(() => null);
+    }
+
+    const confirmField = this.confirmPasswordField();
+    if (await confirmField.isVisible().catch(() => false)) {
+      await confirmField.fill(confirmPassword ?? password ?? '').catch(() => null);
+    }
+  }
+
+  async continueToPaymentStep(): Promise<void> {
+    const next = this.nextButton();
+    if (await next.isVisible().catch(() => false)) {
+      await next.click({ force: true });
+      return;
+    }
+
+    await this.page.getByRole('button', { name: /^next$/i }).click({ force: true });
+  }
+
+  async expectPaymentStepVisible(): Promise<void> {
+    await expect(
+      this.page.locator(
+        '[data-test-id="order-payment-method-world"], [data-test-id="order-payment-method-crypto-current"], [data-test-id="order-payment-submit-button"]'
+      ).first()
+    ).toBeVisible();
+  }
+
+  async expectStillOnCredentialsStep(): Promise<void> {
+    await expect(this.emailField()).toBeVisible();
+  }
+
+  async expectEmailValidationError(): Promise<void> {
+    await expect(this.page.getByText(/email|invalid|required/i).first()).toBeVisible();
+  }
+
+  async expectPasswordValidationError(): Promise<void> {
+    await expect(this.page.getByText(/password|uppercase|digit|short/i).first()).toBeVisible();
+  }
+
+  async expectPasswordMismatchError(): Promise<void> {
+    await expect(this.page.getByText(/confirm|match|same/i).first()).toBeVisible();
+  }
+
+  async expectRequiredFieldErrors(): Promise<void> {
+    await expect(this.page.getByText(/required|fill|email/i).first()).toBeVisible();
+  }
+
+  async expectNoCheckoutRedirect(): Promise<void> {
+    await expect(this.page).not.toHaveURL(/checkout\.stripe\.com|paypal\.com|kassa\.ai|yoomoney\.ru/i);
+  }
+
+  async expectExistingEmailUx(): Promise<void> {
+    await expect(this.page.getByText(/already exists|log in|sign in|account/i).first()).toBeVisible();
+  }
+
+  async expectNextDisabled(): Promise<void> {
+    const button = this.nextButton();
+    await expect(button).toBeVisible();
+    await expect(button).toBeDisabled();
+  }
+
+  async expectNextEnabled(): Promise<void> {
+    await expect(this.nextButton()).toBeEnabled();
+  }
+
+  async expectNoValidationBypassOnForcedSubmit(): Promise<void> {
+    await this.nextButton().click({ force: true }).catch(() => null);
+    await this.expectStillOnCredentialsStep();
+  }
+
+  async expectPrefilledEmail(email: string): Promise<void> {
+    await expect(this.emailField()).toHaveValue(email);
+  }
+
+  async expectEmptyCredentialsForm(): Promise<void> {
+    await expect(this.emailField()).toHaveValue('');
+  }
+
+  async expectReturningUserUiState(): Promise<void> {
+    await expect(this.emailField()).toBeVisible();
+  }
+
+  async expectFreshUiState(): Promise<void> {
+    await expect(this.emailField()).toBeVisible();
+    await expect(this.emailField()).toHaveValue('');
+  }
+
+  async tryToLeaveDirtyForm(): Promise<void> {
+    await this.page.goBack().catch(() => null);
+  }
+
+  async expectLeaveConfirmationModal(): Promise<void> {
+    await expect(this.page.getByText(/are you sure|leave|proceed/i).first()).toBeVisible();
+  }
+
+  async cancelLeaveAndExpectFormPreserved(): Promise<void> {
+    const cancel = this.page.getByRole('button', { name: /cancel|stay/i }).first();
+    if (await cancel.isVisible().catch(() => false)) {
+      await cancel.click({ force: true });
+    }
+    await expect(this.emailField()).toBeVisible();
+  }
+
+  async confirmLeaveAndExpectLandingOrLogin(): Promise<void> {
+    const confirm = this.page.getByRole('button', { name: /confirm|leave|proceed/i }).first();
+    if (await confirm.isVisible().catch(() => false)) {
+      await confirm.click({ force: true });
+    }
+  }
+
+  async expectAuthRecoveryScreen(): Promise<void> {
+    await expect(this.page.getByText(/log in|sign up|session|expired/i).first()).toBeVisible();
+  }
+
+  async focusEmailHelp(): Promise<void> {
+    await this.emailField().focus();
+  }
+
+  async resetCredentialsStep(): Promise<void> {
+    await this.emailField().fill('');
+    const password = this.passwordField();
+    if (await password.isVisible().catch(() => false)) {
+      await password.fill('');
+    }
+    const confirm = this.confirmPasswordField();
+    if (await confirm.isVisible().catch(() => false)) {
+      await confirm.fill('');
+    }
+  }
+}

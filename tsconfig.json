@@ -19,6 +19,7 @@
   "include": [
     "playwright.config.ts",
     "src/**/*.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "tests-e2e/**/*.ts"
   ]
 }

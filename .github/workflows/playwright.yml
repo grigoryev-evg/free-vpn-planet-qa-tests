@@ -11,7 +11,8 @@ on:
         options:
           - all
           - smoke
-          - known-issues
+          - e2e-ui
+          - e2e-api
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -47,7 +48,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Run smoke suite
         run: npm run test:smoke
@@ -107,9 +108,64 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-  known-issues:
+  e2e-ui:
     runs-on: ubuntu-latest
-    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'known-issues'
+    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'e2e-ui'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run E2E UI suite
+        run: npm run test:e2e-ui
+
+      - name: Upload E2E UI HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-e2e-ui
+          path: playwright-report/
+          if-no-files-found: ignore
+
+      - name: Upload E2E UI test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-e2e-ui
+          path: |
+            test-results/
+            artifacts/
+          if-no-files-found: ignore
+
+      - name: Publish E2E UI summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## E2E UI Report"
+            echo
+            echo "- Suite: \`e2e-ui\`"
+            echo "- HTML report artifact: \`playwright-report-e2e-ui\`"
+            echo "- Test results artifact: \`test-results-e2e-ui\`"
+            echo
+            echo "Open the HTML report by downloading the \`playwright-report-e2e-ui\` artifact and opening \`index.html\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  e2e-api:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'e2e-api'
 
     steps:
       - name: Checkout repository
@@ -127,40 +183,23 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run known issues suite
-        continue-on-error: true
-        run: npm run test:known-issues
+      - name: Run E2E API suite
+        run: npm run test:e2e-api
 
-      - name: Upload known issues HTML report
+      - name: Upload E2E API HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-known-issues
+          name: playwright-report-e2e-api
           path: playwright-report/
           if-no-files-found: ignore
 
-      - name: Upload known issues test results
+      - name: Upload E2E API test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-known-issues
+          name: test-results-e2e-api
           path: |
             test-results/
             artifacts/
           if-no-files-found: ignore
-
-      - name: Publish known issues summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "## Known Issues Report"
-            echo
-            echo "- Suite: \`known-issues\`"
-            echo "- HTML report artifact: \`playwright-report-known-issues\`"
-            echo "- Test results artifact: \`test-results-known-issues\`"
-            echo
-            echo "Open the HTML report by downloading the \`playwright-report-known-issues\` artifact and opening \`index.html\`."
-            echo
-            echo "These tests intentionally document current checkout defects and may fail by design."
-          } >> "$GITHUB_STEP_SUMMARY"
