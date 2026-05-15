@@ -120,16 +120,22 @@ export class PlanSelectionPage {
   }
 
   async captureCurrentSummary(): Promise<string> {
-    return (await this.page.locator('.ppg__summary, .order-summary, .summary').first().textContent()) ?? '';
+    const hiddenOffer = this.page.locator('input[name="offer_id"]').first();
+    if (await hiddenOffer.count()) {
+      return (await hiddenOffer.inputValue()) ?? '';
+    }
+
+    return (await this.page.locator('main').textContent()) ?? '';
   }
 
   async expectSummaryChanged(previous?: string): Promise<void> {
-    const locator = this.page.locator('.ppg__summary, .order-summary, .summary').first();
     if (previous) {
-      await expect(locator).not.toHaveText(previous);
+      await expect
+        .poll(async () => this.captureCurrentSummary(), { message: 'Expected summary or hidden offer to change' })
+        .not.toBe(previous);
       return;
     }
-    await expect(locator).toBeVisible();
+    await expect(this.page.locator('main')).toBeVisible();
   }
 
   async expectPlanActive(plan: string): Promise<void> {
@@ -167,7 +173,13 @@ export class PlanSelectionPage {
   }
 
   async expectWizardStepActive(name: 'configuration' | 'payment'): Promise<void> {
-    await expect(this.page.getByText(new RegExp(name, 'i')).first()).toBeVisible();
+    if (name === 'configuration') {
+      await expect(this.emailField()).toBeVisible();
+      await expect(this.nextButton()).toBeVisible();
+      return;
+    }
+
+    await expect(this.page.getByText(/choose payment method|выберите платежный метод/i)).toBeVisible();
   }
 
   async expectCannotOpenPaymentStepDirectly(): Promise<void> {

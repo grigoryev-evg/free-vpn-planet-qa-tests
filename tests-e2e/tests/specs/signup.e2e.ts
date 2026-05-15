@@ -9,7 +9,6 @@ import { runScenarioStep } from '../../utils/scenario_runner';
 
 test.describe('Sign Up E2E', () => {
   test('TC_SIGNUP_001 @smoke - Successful signup with card reaches hosted checkout', async ({ page }) => {
-    test.fail(true, 'Observed on May 15, 2026: Sign Up submit stays on https://account.freevpnplanet.com/order/ instead of opening hosted checkout.');
     const signup = new SignupPage(page);
     const payment = new PaymentMethodPage(page);
 

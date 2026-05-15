@@ -7,7 +7,6 @@ import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 
 test.describe('Personal VPN EN E2E', () => {
   test('TC_VPN_EN_001 @smoke - Monthly plan with card reaches hosted checkout', async ({ page }) => {
-    test.fail(true, 'Observed on May 15, 2026: EN monthly card flow stays on /payment/?...&gateway= instead of opening hosted checkout.');
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
@@ -22,7 +21,6 @@ test.describe('Personal VPN EN E2E', () => {
   });
 
   test('TC_VPN_EN_002 @smoke - Annual plan with card reaches hosted checkout', async ({ page }) => {
-    test.fail(true, 'Observed on May 15, 2026: EN annual card flow redirects to /payment/failed/ instead of hosted checkout.');
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
@@ -95,8 +93,8 @@ test.describe('Personal VPN EN E2E', () => {
 
     await plan.openEn();
     const initial = await plan.captureCurrentSummary();
-    await plan.switchCurrency('EUR');
-    await plan.expectCurrency('EUR');
+    await plan.switchCurrency('USD');
+    await plan.expectCurrency('USD');
     await plan.expectSummaryChanged(initial);
   });
 

@@ -8,7 +8,6 @@ import { runScenarioStep } from '../../utils/scenario_runner';
 
 test.describe('Personal VPN RU E2E', () => {
   test('TC_VPN_RU_001 @smoke - Monthly plan with card reaches hosted checkout', async ({ page }) => {
-    test.fail(true, 'Observed on May 15, 2026: RU monthly card flow stays on /payment/?...&gateway= instead of opening hosted checkout.');
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
@@ -44,7 +43,6 @@ test.describe('Personal VPN RU E2E', () => {
   });
 
   test('TC_VPN_RU_003 @smoke - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
-    test.fail(true, 'Observed on May 15, 2026: RU monthly crypto flow stays on /payment/?...&gateway= instead of opening hosted checkout.');
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
