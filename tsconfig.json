@@ -9,16 +9,10 @@
     "resolveJsonModule": true,
     "strict": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
-    "paths": {
-      "@config/*": ["src/config/*"],
-      "@pages/*": ["src/pages/*"],
-      "@utils/*": ["src/utils/*"]
-    }
+    "baseUrl": "."
   },
   "include": [
     "playwright.config.ts",
-    "src/**/*.ts",
     "tests/**/*.ts",
     "tests-e2e/**/*.ts"
   ]
