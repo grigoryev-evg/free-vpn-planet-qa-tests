@@ -5,6 +5,8 @@
   "description": "Playwright E2E automation for Free VPN Planet QA assignment",
   "scripts": {
     "test": "playwright test",
+    "test:smoke": "playwright test tests/auth-signup.spec.ts tests/personal-vpn-en.spec.ts tests/personal-vpn-ru.spec.ts",
+    "test:known-issues": "playwright test tests/known-issues.spec.ts",
     "test:signup": "playwright test tests/auth-signup.spec.ts",
     "test:personal-ru": "playwright test tests/personal-vpn-ru.spec.ts",
     "test:personal-en": "playwright test tests/personal-vpn-en.spec.ts",
