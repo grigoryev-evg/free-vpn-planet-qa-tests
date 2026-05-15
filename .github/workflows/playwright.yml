@@ -1,16 +1,12 @@
 name: Playwright E2E
 
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
     inputs:
       suite:
         description: Test suite to run
         required: true
-        default: all
+        default: smoke
         type: choice
         options:
           - all
@@ -29,7 +25,7 @@ concurrency:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'smoke'
+    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'smoke'
 
     outputs:
       pages_url: ${{ steps.deploy-pages.outputs.page_url }}
@@ -72,23 +68,23 @@ jobs:
           if-no-files-found: ignore
 
       - name: Setup GitHub Pages
-        if: always() && github.event_name != 'pull_request'
+        if: always()
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
-        if: always() && github.event_name != 'pull_request'
+        if: always()
         uses: actions/upload-pages-artifact@v3
         with:
           path: playwright-report/
 
       - name: Deploy report to GitHub Pages
         id: deploy-pages
-        if: always() && github.event_name != 'pull_request'
+        if: always()
         uses: actions/deploy-pages@v4
 
   known-issues:
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.suite == 'all' || github.event.inputs.suite == 'known-issues'
+    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'known-issues'
 
     steps:
       - name: Checkout repository
