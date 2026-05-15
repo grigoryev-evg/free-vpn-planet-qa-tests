@@ -128,6 +128,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run known issues suite
+        continue-on-error: true
         run: npm run test:known-issues
 
       - name: Upload known issues HTML report
@@ -158,6 +159,8 @@ jobs:
             echo "- Suite: \`known-issues\`"
             echo "- HTML report artifact: \`playwright-report-known-issues\`"
             echo "- Test results artifact: \`test-results-known-issues\`"
+            echo
+            echo "Open the HTML report by downloading the \`playwright-report-known-issues\` artifact and opening \`index.html\`."
             echo
             echo "These tests intentionally document current checkout defects and may fail by design."
           } >> "$GITHUB_STEP_SUMMARY"
