@@ -13,6 +13,9 @@ on:
           - smoke
           - known-issues
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
   pages: write
@@ -84,6 +87,26 @@ jobs:
         continue-on-error: true
         uses: actions/deploy-pages@v4
 
+      - name: Publish smoke summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Smoke Report"
+            echo
+            echo "- Suite: \`smoke\`"
+            echo "- HTML report artifact: \`playwright-report-smoke\`"
+            echo "- Test results artifact: \`test-results-smoke\`"
+            echo
+            echo "Open the HTML report by downloading the \`playwright-report-smoke\` artifact and opening \`index.html\`."
+            echo
+            if [ -n "${{ steps.deploy-pages.outputs.page_url }}" ]; then
+              echo "- GitHub Pages report: ${{ steps.deploy-pages.outputs.page_url }}"
+            else
+              echo "- GitHub Pages report: not available for this run"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   known-issues:
     runs-on: ubuntu-latest
     if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'known-issues'
@@ -124,3 +147,17 @@ jobs:
             test-results/
             artifacts/
           if-no-files-found: ignore
+
+      - name: Publish known issues summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Known Issues Report"
+            echo
+            echo "- Suite: \`known-issues\`"
+            echo "- HTML report artifact: \`playwright-report-known-issues\`"
+            echo "- Test results artifact: \`test-results-known-issues\`"
+            echo
+            echo "These tests intentionally document current checkout defects and may fail by design."
+          } >> "$GITHUB_STEP_SUMMARY"
