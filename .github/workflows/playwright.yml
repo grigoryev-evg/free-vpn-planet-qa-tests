@@ -6,9 +6,10 @@ on:
       suite:
         description: Test suite to run
         required: true
-        default: smoke
+        default: assignment
         type: choice
         options:
+          - assignment
           - all
           - smoke
           - e2e-ui
@@ -29,7 +30,7 @@ concurrency:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'smoke'
+    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'assignment' || github.event.inputs.suite == 'smoke'
 
     outputs:
       pages_url: ${{ steps.deploy-pages.outputs.page_url }}
@@ -50,7 +51,12 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
 
+      - name: Run assignment suite
+        if: github.event.inputs.suite == 'assignment'
+        run: npm run test:assignment
+
       - name: Run smoke suite
+        if: github.event.inputs.suite != 'assignment'
         run: npm run test:smoke
 
       - name: Upload smoke HTML report
@@ -95,7 +101,7 @@ jobs:
           {
             echo "## Smoke Report"
             echo
-            echo "- Suite: \`smoke\`"
+            echo "- Suite: \`${{ github.event.inputs.suite }}\`"
             echo "- HTML report artifact: \`playwright-report-smoke\`"
             echo "- Test results artifact: \`test-results-smoke\`"
             echo

@@ -1,6 +1,8 @@
 import { expect, Locator, Page } from '@playwright/test';
-import { createUniqueEmail, regexFromOptions } from '../../../utils/helpers';
+import { createUniqueEmail, expectPageHost, regexFromOptions } from '../../../utils/helpers';
 import { enPlans, ruPlans } from '../../../data/plans';
+
+const paymentStepTitlePattern = /choose payment method|выберите платежный метод|выберите способ оплаты/i;
 
 export class PlanSelectionPage {
   constructor(
@@ -14,12 +16,12 @@ export class PlanSelectionPage {
 
   async openRu(): Promise<void> {
     await this.page.goto(process.env.PERSONAL_VPN_RU_URL ?? 'https://planetconfig.com', { waitUntil: 'domcontentloaded' });
-    await expect(this.page).toHaveURL(/planetconfig\.com/i);
+    await expectPageHost(this.page, 'planetconfig.com');
   }
 
   async openEn(): Promise<void> {
     await this.page.goto(process.env.PERSONAL_VPN_EN_URL ?? 'https://personal.freevpnplanet.com', { waitUntil: 'domcontentloaded' });
-    await expect(this.page).toHaveURL(/personal\.freevpnplanet\.com/i);
+    await expectPageHost(this.page, 'personal.freevpnplanet.com');
   }
 
   locationSelect(): Locator {
@@ -96,7 +98,7 @@ export class PlanSelectionPage {
 
   async expectPaymentMethodStepVisible(): Promise<void> {
     await expect(this.page).toHaveURL(/\/payment\/\?/i);
-    await expect(this.page.getByText(/choose payment method|выберите платежный метод/i)).toBeVisible();
+    await expect(this.page.getByText(paymentStepTitlePattern)).toBeVisible();
   }
 
   async fillRequiredRuDefaults(): Promise<void> {
@@ -179,7 +181,7 @@ export class PlanSelectionPage {
       return;
     }
 
-    await expect(this.page.getByText(/choose payment method|выберите платежный метод/i)).toBeVisible();
+    await expect(this.page.getByText(paymentStepTitlePattern)).toBeVisible();
   }
 
   async expectCannotOpenPaymentStepDirectly(): Promise<void> {

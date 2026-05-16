@@ -1,26 +1,25 @@
-import { expect, Page } from '@playwright/test';
+import { expect, Locator, Page } from '@playwright/test';
+
+const paymentMethodLocator =
+  '[data-test-id="order-payment-method-world"], [data-test-id="order-payment-method-crypto-current"], #qa-radio-gateway-card-ru, button.order-payment__item-select, label.ppg__modal-label';
 
 export class PaymentMethodPage {
   constructor(private readonly page: Page) {}
 
-  submitButton() {
+  submitButton(): Locator {
     return this.page
       .locator('[data-test-id="order-payment-submit-button"], #qa-btn-submit-step2, button.ui-button[type="submit"]')
       .first();
   }
 
   async expectPaymentMethodsVisible(): Promise<void> {
-    await expect(
-      this.page.locator(
-        '[data-test-id="order-payment-method-world"], [data-test-id="order-payment-method-crypto-current"], #qa-radio-gateway-card-ru, button.order-payment__item-select, label.ppg__modal-label'
-      ).first()
-    ).toBeVisible();
+    await expect(this.page.locator(paymentMethodLocator).first()).toBeVisible();
   }
 
   async selectCard(): Promise<void> {
     const signupCard = this.page.locator('[data-test-id="order-payment-method-world"]');
     if (await signupCard.isVisible().catch(() => false)) {
-      await signupCard.click({ force: true });
+      await signupCard.click();
       return;
     }
 
@@ -30,7 +29,7 @@ export class PaymentMethodPage {
       return;
     }
 
-    await this.page.locator('label.ppg__modal-label').filter({ hasText: /credit card|bank card/i }).first().click({ force: true });
+    await this.page.locator('label.ppg__modal-label').filter({ hasText: /credit card|bank card/i }).first().click();
   }
 
   async selectRuBankCard(): Promise<void> {
@@ -44,13 +43,13 @@ export class PaymentMethodPage {
   async selectCrypto(): Promise<void> {
     const signupCrypto = this.page.locator('[data-test-id="order-payment-method-crypto-current"]');
     if (await signupCrypto.isVisible().catch(() => false)) {
-      await signupCrypto.click({ force: true });
+      await signupCrypto.click();
       return;
     }
 
     const cryptoButton = this.page.getByRole('button', { name: /select cryptocurrency|выберите криптовалюту/i });
-    await cryptoButton.click({ force: true });
-    await this.page.locator('button.order-payment__item-select').first().click({ force: true });
+    await cryptoButton.click();
+    await this.page.locator('button.order-payment__item-select').first().click();
 
     const hiddenGateway = this.page.locator('#qa-radio-crypto, input[name="gateway"].js-input-payment').first();
     if (await hiddenGateway.count()) {
@@ -63,7 +62,7 @@ export class PaymentMethodPage {
   }
 
   async selectPayPal(): Promise<void> {
-    await this.page.locator('label.ppg__modal-label').filter({ hasText: /paypal/i }).first().click({ force: true });
+    await this.page.locator('label.ppg__modal-label').filter({ hasText: /paypal/i }).first().click();
   }
 
   async acceptTerms(): Promise<void> {
@@ -109,7 +108,8 @@ export class PaymentMethodPage {
     const popupPromise = this.page.context().waitForEvent('page', { timeout: 15_000 }).catch(() => null);
     const navigationPromise = this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15_000 }).catch(() => null);
 
-    await this.submitButton().click({ force: true });
+    await expect(this.submitButton()).toBeEnabled();
+    await this.submitButton().click();
 
     const popup = await popupPromise;
     if (popup) {
@@ -122,7 +122,8 @@ export class PaymentMethodPage {
   }
 
   async clickSubmitAndExpectLoadingState(): Promise<void> {
-    await this.submitButton().click({ force: true });
+    await expect(this.submitButton()).toBeEnabled();
+    await this.submitButton().click();
     await expect(this.submitButton()).toContainText(/loading|processing|paying/i);
   }
 

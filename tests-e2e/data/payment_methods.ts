@@ -8,5 +8,5 @@ export const allowedPaymentHosts = [
   'checkout.stripe.com',
   'paymentt.kassa.ai',
   'yoomoney.ru',
-  'paypal.com'
+  'www.paypal.com'
 ] as const;

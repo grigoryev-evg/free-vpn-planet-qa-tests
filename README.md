@@ -29,6 +29,7 @@ npm test
 ## NPM scripts
 
 - `npm test` - run the full E2E suite
+- `npm run test:assignment` - run assignment-critical checkout scenarios
 - `npm run test:smoke` - run smoke-marked scenarios
 - `npm run test:e2e-ui` - run the full UI suite
 - `npm run test:e2e-api` - run API and checkout contract tests
@@ -42,15 +43,33 @@ npm test
 
 ## Project structure
 
-- [`tests-e2e/features`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/tests-e2e/features) - feature summaries
-- [`tests-e2e/tests/specs`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/tests-e2e/tests/specs) - TC-based E2E specs
-- [`tests-e2e/tests/browser/pages`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/tests-e2e/tests/browser/pages) - split page objects
-- [`tests-e2e/tests/browser/helpers`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/tests-e2e/tests/browser/helpers) - cookie, storage, and UI helpers
-- [`tests-e2e/data`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/tests-e2e/data) - users, plans, and payment methods
-- [`tests-e2e/utils`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/tests-e2e/utils) - scenario utilities
-- [`playwright.config.ts`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/playwright.config.ts) - Playwright configuration
-- [`.github/workflows/playwright.yml`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/.github/workflows/playwright.yml) - CI pipeline
-- [`docs/recommendations-template.md`](/C:/Users/cbz_pc/free-vpn-planet-qa-tests/docs/recommendations-template.md) - template for the companion document
+- [`tests-e2e/features`](tests-e2e/features) - feature summaries
+- [`tests-e2e/tests/specs`](tests-e2e/tests/specs) - TC-based E2E specs
+- [`tests-e2e/tests/browser/pages`](tests-e2e/tests/browser/pages) - split page objects
+- [`tests-e2e/tests/browser/helpers`](tests-e2e/tests/browser/helpers) - cookie, storage, and UI helpers
+- [`tests-e2e/data`](tests-e2e/data) - users, plans, and payment methods
+- [`tests-e2e/utils`](tests-e2e/utils) - scenario utilities
+- [`playwright.config.ts`](playwright.config.ts) - Playwright configuration
+- [`.github/workflows/playwright.yml`](.github/workflows/playwright.yml) - GitHub Actions pipeline
+- [`docs/recommendations-template.md`](docs/recommendations-template.md) - template for the companion document
+
+## E2E coverage
+
+The assignment-critical suite is tagged with `@assignment` and validates the user journey up to the hosted payment provider. These tests intentionally assert the checkout hand-off: if the live product does not create/open a valid payment page, the test fails.
+
+| Area | Test cases | What is covered |
+|---|---|---|
+| Sign Up checkout | `TC_SIGNUP_001` | Opens `freevpnplanet.com`, navigates through `Log In -> Sign Up`, fills a fresh user, selects card payment, accepts terms, submits `Get your subscription`, and verifies that the browser reaches an allowed hosted payment provider. |
+| Personal VPN RU | `TC_VPN_RU_001`, `TC_VPN_RU_003` | Opens `planetconfig.com`, selects purchase options, continues to payment method selection, covers card and cryptocurrency payment methods, submits payment, and verifies hosted checkout navigation. |
+| Personal VPN EN | `TC_VPN_EN_001`, `TC_VPN_EN_002`, `TC_VPN_EN_003`, `TC_VPN_EN_004` | Opens `personal.freevpnplanet.com`, covers monthly and annual plans, covers card and PayPal payment methods, submits payment, and verifies hosted checkout navigation. |
+| Payment contract sanity | `API_001`, `API_003`, `API_004` | Checks public funnel availability, payment provider allowlist normalization, and that the RU payment step exposes expected payment controls before submit. |
+
+Additional non-assignment scenarios are kept under the same specs to document wider QA coverage:
+
+- Sign Up validation: invalid email, invalid password variants, password mismatch, empty required fields, guarded submit behavior.
+- State and recovery: cookies, localStorage/session behavior, expired auth recovery, clean-context behavior.
+- UI and modal behavior: loading states, leave-confirmation flows, retry/error modal handling, tooltip/helper visibility.
+- Purchase-flow resilience: back/change-plan behavior, failed-payment route handling, currency/plan summary updates.
 
 ## Assumptions
 
@@ -63,9 +82,9 @@ npm test
 
 The workflow supports:
 
-- automatic runs on `push` and `pull_request`
 - manual runs from `Actions -> Playwright E2E -> Run workflow`
-- manual suite choice: `all`, `smoke`, `e2e-ui`, `e2e-api`
+- manual suite choice: `assignment`, `all`, `smoke`, `e2e-ui`, `e2e-api`
+- default manual suite: `assignment`
 
 Artifacts published on each run:
 
@@ -79,6 +98,8 @@ The `smoke` job also deploys the HTML report to GitHub Pages, so the run include
 
 - `smoke`:
   core assignment coverage with `@smoke` tests
+- `assignment`:
+  required assignment flows with hosted checkout assertions; expected to fail if the live checkout flow is broken
 - `e2e-ui`:
   UI flows, validation, cookies, modals, and state checks
 - `e2e-api`:

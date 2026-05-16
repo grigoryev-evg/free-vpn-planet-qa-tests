@@ -1,13 +1,12 @@
 import { expect, Page } from '@playwright/test';
-import { expectAllowedCheckoutTarget, expectedPaymentHostPattern } from '../../../utils/helpers';
+import { expectAllowedCheckoutTarget, isAllowedPaymentHost } from '../../../utils/helpers';
 
 export class PaymentPage {
   constructor(private readonly page: Page) {}
 
   async expectHostedProvider(hosts?: readonly string[]): Promise<void> {
     if (hosts?.length) {
-      const pattern = new RegExp(hosts.map((host) => host.replace(/\./g, '\\.')).join('|'), 'i');
-      await expect.poll(async () => this.page.url()).toMatch(pattern);
+      await expect.poll(async () => isAllowedPaymentHost(this.page.url(), hosts)).toBe(true);
       return;
     }
 
@@ -15,7 +14,7 @@ export class PaymentPage {
   }
 
   async expectAllowedProviderHost(): Promise<void> {
-    await expect.poll(async () => this.page.url()).toMatch(expectedPaymentHostPattern);
+    await expect.poll(async () => isAllowedPaymentHost(this.page.url())).toBe(true);
   }
 
   async expectFailedPaymentState(): Promise<void> {

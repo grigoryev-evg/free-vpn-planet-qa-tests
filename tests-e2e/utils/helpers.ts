@@ -14,13 +14,28 @@ export const regexFromOptions = (values: readonly string[]): RegExp => {
   return new RegExp(body, 'i');
 };
 
-export const expectedPaymentHostPattern = new RegExp(
-  allowedPaymentHosts.map((host) => host.replace(/\./g, '\\.')).join('|'),
-  'i'
-);
+export const getHostname = (url: string): string => new URL(url).hostname.toLowerCase();
+
+export const expectPageHost = async (page: Page, hostname: string): Promise<void> => {
+  await expect
+    .poll(async () => getHostname(page.url()), { message: `Expected page host to be ${hostname}` })
+    .toBe(hostname.toLowerCase());
+};
+
+export const isAllowedPaymentHost = (url: string, hosts: readonly string[] = allowedPaymentHosts): boolean => {
+  try {
+    const hostname = getHostname(url);
+    return hosts.some((host) => {
+      const normalizedHost = host.toLowerCase();
+      return hostname === normalizedHost || hostname.endsWith(`.${normalizedHost}`);
+    });
+  } catch {
+    return false;
+  }
+};
 
 export const expectAllowedCheckoutTarget = async (page: Page): Promise<void> => {
   await expect
-    .poll(async () => page.url(), { message: 'Expected redirect to an allowed hosted payment page' })
-    .toMatch(expectedPaymentHostPattern);
+    .poll(async () => isAllowedPaymentHost(page.url()), { message: 'Expected redirect to an allowed hosted payment page' })
+    .toBe(true);
 };

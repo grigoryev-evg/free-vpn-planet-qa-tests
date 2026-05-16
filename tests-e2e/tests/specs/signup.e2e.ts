@@ -8,7 +8,7 @@ import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 import { runScenarioStep } from '../../utils/scenario_runner';
 
 test.describe('Sign Up E2E', () => {
-  test('TC_SIGNUP_001 @smoke - Successful signup with card reaches hosted checkout', async ({ page }) => {
+  test('TC_SIGNUP_001 @assignment @smoke - Successful signup with card reaches hosted checkout', async ({ page }) => {
     const signup = new SignupPage(page);
     const payment = new PaymentMethodPage(page);
 
@@ -135,7 +135,7 @@ test.describe('Sign Up E2E', () => {
     await signup.open();
     await signup.openSignUpFromLanding();
     const emailValue = await signup.emailField().inputValue();
-    expect([emailValue, 'saved@example.com']).toContain(emailValue);
+    expect(['', 'saved@example.com']).toContain(emailValue);
   });
 
   test('TC_SIGNUP_COOKIES_002 - Clean storage shows empty form', async ({ context, page }) => {

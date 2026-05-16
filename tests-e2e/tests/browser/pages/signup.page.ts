@@ -1,5 +1,5 @@
 import { expect, Locator, Page } from '@playwright/test';
-import { createUniqueEmail } from '../../../utils/helpers';
+import { createUniqueEmail, expectPageHost, isAllowedPaymentHost } from '../../../utils/helpers';
 
 type Credentials = {
   email: string;
@@ -16,7 +16,7 @@ export class SignupPage {
 
   async open(): Promise<void> {
     await this.page.goto(process.env.BASE_URL ?? 'https://freevpnplanet.com', { waitUntil: 'domcontentloaded' });
-    await expect(this.page).toHaveURL(/freevpnplanet\.com/i);
+    await expectPageHost(this.page, 'freevpnplanet.com');
   }
 
   async openSignUpFromLanding(): Promise<void> {
@@ -110,7 +110,7 @@ export class SignupPage {
   }
 
   async expectNoCheckoutRedirect(): Promise<void> {
-    await expect(this.page).not.toHaveURL(/checkout\.stripe\.com|paypal\.com|kassa\.ai|yoomoney\.ru/i);
+    expect(isAllowedPaymentHost(this.page.url())).toBe(false);
   }
 
   async expectExistingEmailUx(): Promise<void> {

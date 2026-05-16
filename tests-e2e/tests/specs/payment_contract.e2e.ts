@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { allowedPaymentHosts, paymentMethods } from '../../data/payment_methods';
-import { normalizeText } from '../../utils/helpers';
+import { isAllowedPaymentHost, normalizeText } from '../../utils/helpers';
 import { PaymentMethodPage } from '../browser/pages/payment_method.page';
 import { PaymentPage } from '../browser/pages/payment_page.page';
 import { SignupPage } from '../browser/pages/signup.page';
 import { PlanSelectionPage } from '../browser/pages/plan_selection.page';
 
 test.describe('Payment contract and network checks', () => {
-  test('API_001 @smoke - Public funnel pages return non-5xx statuses', async ({ request }) => {
+  test('API_001 - Public funnel pages return non-5xx statuses', async ({ request }) => {
     for (const url of [
       process.env.BASE_URL ?? 'https://freevpnplanet.com',
       process.env.PERSONAL_VPN_RU_URL ?? 'https://planetconfig.com',
@@ -40,6 +40,9 @@ test.describe('Payment contract and network checks', () => {
     expect(normalizedHosts.length).toBeGreaterThan(0);
     expect(new Set(normalizedHosts).size).toBe(normalizedHosts.length);
     expect(normalizedMethods).toContain('credit card');
+    expect(isAllowedPaymentHost('https://checkout.stripe.com/c/pay')).toBe(true);
+    expect(isAllowedPaymentHost('https://stripe.com/pay')).toBe(false);
+    expect(isAllowedPaymentHost('https://evil-stripe.com/c/pay')).toBe(false);
   });
 
   test('API_004 - RU payment step exposes at least one expected payment control before submit', async ({ page }) => {
