@@ -24,6 +24,7 @@ export class SignupPage {
     await this.page.getByRole('link', { name: /log in/i }).click();
     await expect(this.page).toHaveURL(/account\.freevpnplanet\.com/i);
     await this.page.getByRole('link', { name: /sign up/i }).click();
+    await expect(this.emailField()).toBeVisible();
   }
 
   async acceptCookiesIfPresent(): Promise<void> {
@@ -34,7 +35,9 @@ export class SignupPage {
   }
 
   emailField(): Locator {
-    return this.page.locator('input[type="email"], input[placeholder*="email" i], input[name="email"]').first();
+    return this.page
+      .locator('input[placeholder="Enter email"], input[placeholder*="email" i], input[name="email"], input[type="email"]')
+      .first();
   }
 
   passwordField(): Locator {
@@ -54,7 +57,12 @@ export class SignupPage {
   }
 
   async fillEmailOnly(email: string): Promise<void> {
-    await this.emailField().fill(email);
+    const emailInput = this.emailField();
+    await expect(emailInput).toBeEditable();
+    await emailInput.click();
+    await emailInput.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+    await emailInput.pressSequentially(email);
+    await expect(emailInput).toHaveValue(email);
   }
 
   async fillCredentials({ email, password, confirmPassword }: Credentials): Promise<void> {
@@ -74,11 +82,14 @@ export class SignupPage {
   async continueToPaymentStep(): Promise<void> {
     const next = this.nextButton();
     if (await next.isVisible().catch(() => false)) {
-      await next.click({ force: true });
+      await expect(next).toBeEnabled();
+      await next.click();
       return;
     }
 
-    await this.page.getByRole('button', { name: /^next$/i }).click({ force: true });
+    const fallbackNext = this.page.getByRole('button', { name: /^next$/i });
+    await expect(fallbackNext).toBeEnabled();
+    await fallbackNext.click();
   }
 
   async expectPaymentStepVisible(): Promise<void> {
