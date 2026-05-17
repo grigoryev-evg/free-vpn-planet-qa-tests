@@ -7,7 +7,7 @@ import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 import { runScenarioStep } from '../../utils/scenario_runner';
 
 test.describe('Personal VPN RU E2E', () => {
-  test('TC_VPN_RU_001 @smoke - Monthly plan with card reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_RU_001 @smoke @assignment - Monthly plan with card reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
@@ -25,7 +25,7 @@ test.describe('Personal VPN RU E2E', () => {
     });
   });
 
-  test('TC_VPN_RU_002 - Annual plan with card reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_RU_002 @assignment - Annual plan with card reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
@@ -42,7 +42,7 @@ test.describe('Personal VPN RU E2E', () => {
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
-  test('TC_VPN_RU_003 @smoke - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_RU_003 @smoke @assignment - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 

@@ -18,21 +18,6 @@ test.describe('Payment contract and network checks', () => {
     }
   });
 
-  test('API_002 - Signup submit redirects only to an approved provider host', async ({ page }) => {
-    const signup = new SignupPage(page);
-    const payment = new PaymentMethodPage(page);
-
-    await signup.open();
-    await signup.openSignUpFromLanding();
-    await signup.fillCredentials({ email: signup.uniqueEmail(), password: 'PlanetVpnE2E!2026' });
-    await signup.continueToPaymentStep();
-    await payment.selectCard();
-    await payment.acceptTerms();
-
-    const targetPage = await payment.submitPayment();
-    await new PaymentPage(targetPage).expectAllowedProviderHost();
-  });
-
   test('API_003 - Allowed provider host list is normalized and non-empty', async () => {
     const normalizedHosts = allowedPaymentHosts.map(normalizeText);
     const normalizedMethods = Object.values(paymentMethods).flat().map(normalizeText);

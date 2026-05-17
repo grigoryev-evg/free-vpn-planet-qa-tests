@@ -8,7 +8,7 @@ import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 import { runScenarioStep } from '../../utils/scenario_runner';
 
 test.describe('Sign Up E2E', () => {
-  test('TC_SIGNUP_001 @smoke - Successful signup with card reaches hosted checkout', async ({ page }) => {
+  test('TC_SIGNUP_001 @smoke @assignment - Successful signup with card reaches hosted checkout', async ({ page }) => {
     const signup = new SignupPage(page);
     const payment = new PaymentMethodPage(page);
 

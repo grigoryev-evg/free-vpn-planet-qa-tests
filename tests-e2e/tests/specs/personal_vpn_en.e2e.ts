@@ -6,7 +6,7 @@ import { seedCookies } from '../browser/helpers/cookies';
 import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 
 test.describe('Personal VPN EN E2E', () => {
-  test('TC_VPN_EN_001 @smoke - Monthly plan with card reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_EN_001 @smoke @assignment - Monthly plan with card reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
@@ -20,7 +20,7 @@ test.describe('Personal VPN EN E2E', () => {
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
-  test('TC_VPN_EN_002 @smoke - Annual plan with card reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_EN_002 @smoke @assignment - Annual plan with card reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
@@ -33,7 +33,7 @@ test.describe('Personal VPN EN E2E', () => {
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
-  test('TC_VPN_EN_003 @smoke - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_EN_003 @smoke @assignment - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
