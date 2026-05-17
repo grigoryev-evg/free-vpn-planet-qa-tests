@@ -134,7 +134,7 @@ export class PaymentMethodPage {
 
     const btn = this.submitButton();
     await expect(btn).toBeEnabled();
-    await btn.evaluate((element: HTMLElement) => element.click());
+    await btn.click();
 
     const popup = await popupPromise;
     if (popup) {

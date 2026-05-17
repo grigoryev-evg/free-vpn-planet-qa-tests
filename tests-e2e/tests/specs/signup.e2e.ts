@@ -31,7 +31,7 @@ test.describe('Sign Up E2E', () => {
     });
   });
 
-  test('TC_SIGNUP_002 - Successful signup with default payment method reaches hosted checkout', async ({ page }) => {
+  test('TC_SIGNUP_002 @smoke @assignment - Successful signup with default payment method reaches hosted checkout', { tag: ['@smoke', '@assignment'] }, async ({ page }) => {
     const signup = new SignupPage(page);
     const payment = new PaymentMethodPage(page);
 

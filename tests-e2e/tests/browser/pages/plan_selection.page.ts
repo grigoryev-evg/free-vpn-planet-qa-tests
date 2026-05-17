@@ -95,16 +95,6 @@ export class PlanSelectionPage {
 
   async continueToPaymentMethods(): Promise<void> {
     await this.nextButton().click({ force: true });
-    if (await this.isPaymentStepReached()) {
-      return;
-    }
-
-    const button = this.nextButton();
-    await button.evaluate((element: HTMLElement) => {
-      element.click();
-      const form = element.closest('form') as HTMLFormElement | null;
-      form?.requestSubmit?.(element instanceof HTMLButtonElement ? element : undefined);
-    });
     await this.isPaymentStepReached();
   }
 
