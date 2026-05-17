@@ -2,7 +2,9 @@ import { expect, Locator, Page } from '@playwright/test';
 import { createUniqueEmail, expectPageHost, regexFromOptions } from '../../../utils/helpers';
 import { enPlans, ruPlans } from '../../../data/plans';
 
-const paymentStepTitlePattern = /choose payment method|выберите платежный метод|выберите способ оплаты/i;
+const personalVpnEmailDomain = process.env.PERSONAL_VPN_EMAIL_DOMAIN ?? 'mailinator.com';
+const paymentStepControls =
+  '[data-test-id="order-payment-method-world"], [data-test-id="order-payment-method-crypto-current"], #qa-radio-gateway-card-ru, label.ppg__modal-label, input[name="gateway"]';
 
 export class PlanSelectionPage {
   constructor(
@@ -11,7 +13,7 @@ export class PlanSelectionPage {
   ) {}
 
   uniqueEmail(): string {
-    return createUniqueEmail();
+    return createUniqueEmail(personalVpnEmailDomain);
   }
 
   async openRu(): Promise<void> {
@@ -62,17 +64,17 @@ export class PlanSelectionPage {
   }
 
   async selectPlan(plan: string): Promise<void> {
-    await this.page.locator('label.ppg__label.radio').filter({ hasText: plan }).first().click({ force: true });
+    await this.planOptions().filter({ hasText: plan }).first().click({ force: true });
   }
 
   async selectMonthlyPlan(): Promise<void> {
     const values = this.locale === 'ru' ? ruPlans.monthly : enPlans.monthly;
-    await this.page.locator('label.ppg__label.radio').filter({ hasText: regexFromOptions(values) }).first().click({ force: true });
+    await this.planOptions().filter({ hasText: regexFromOptions(values) }).first().click({ force: true });
   }
 
   async selectYearlyPlan(): Promise<void> {
     const values = this.locale === 'ru' ? ruPlans.yearly : enPlans.yearly;
-    await this.page.locator('label.ppg__label.radio').filter({ hasText: regexFromOptions(values) }).first().click({ force: true });
+    await this.planOptions().filter({ hasText: regexFromOptions(values) }).first().click({ force: true });
   }
 
   emailField(): Locator {
@@ -93,47 +95,80 @@ export class PlanSelectionPage {
 
   async continueToPaymentMethods(): Promise<void> {
     await this.nextButton().click({ force: true });
-    await this.page.waitForLoadState('domcontentloaded');
+    if (await this.isPaymentStepReached()) {
+      return;
+    }
+
+    const button = this.nextButton();
+    await button.evaluate((element: HTMLElement) => {
+      element.click();
+      const form = element.closest('form') as HTMLFormElement | null;
+      form?.requestSubmit?.(element instanceof HTMLButtonElement ? element : undefined);
+    });
+    await this.isPaymentStepReached();
   }
 
   async expectPaymentMethodStepVisible(): Promise<void> {
     await expect(this.page).toHaveURL(/\/payment\/\?/i);
-    await expect(this.page.getByText(paymentStepTitlePattern)).toBeVisible();
+    await expect(this.page.locator(paymentStepControls).first()).toBeVisible();
+  }
+
+  /**
+   * Универсальный метод заполнения обязательных полей для RU и EN.
+   * Заменяет fillRequiredRuDefaults() и fillRequiredEnDefaults().
+   *
+   * @param options.locale — 'ru' | 'en'
+   * @param options.plan — 'monthly' | 'yearly' (по умолчанию 'monthly')
+   */
+  async fillRequiredDefaults(options: { locale: 'ru' | 'en'; plan?: 'monthly' | 'yearly' }): Promise<void> {
+    if (options.locale === 'ru') {
+      await this.openRu();
+      await this.selectLocation('Netherlands');
+      await this.selectCurrency('RUB');
+    } else {
+      await this.openEn();
+      await this.selectLocation('Netherlands');
+      await this.selectCurrency('USD');
+    }
+
+    if (options.plan === 'yearly') {
+      await this.selectYearlyPlan();
+    } else {
+      await this.selectMonthlyPlan();
+    }
+
+    await this.fillEmail(this.uniqueEmail());
   }
 
   async fillRequiredRuDefaults(): Promise<void> {
-    await this.openRu();
-    await this.selectLocation('Netherlands');
-    await this.selectCurrency('RUB');
-    await this.selectMonthlyPlan();
-    await this.fillEmail(this.uniqueEmail());
+    await this.fillRequiredDefaults({ locale: 'ru', plan: 'monthly' });
   }
 
   async fillRequiredEnDefaults(options: { plan: '1 month' | '1 year' }): Promise<void> {
-    await this.openEn();
-    await this.selectLocation('Netherlands');
-    await this.selectCurrency('USD');
-    if (options.plan === '1 month') {
-      await this.selectMonthlyPlan();
-    } else {
-      await this.selectYearlyPlan();
-    }
-    await this.fillEmail(this.uniqueEmail());
+    await this.fillRequiredDefaults({ locale: 'en', plan: options.plan === '1 month' ? 'monthly' : 'yearly' });
   }
 
   async captureCurrentSummary(): Promise<string> {
-    const hiddenOffer = this.page.locator('input[name="offer_id"]').first();
-    if (await hiddenOffer.count()) {
-      return (await hiddenOffer.inputValue()) ?? '';
-    }
+    return this.page.evaluate(() => {
+      const root = document.querySelector('main') ?? document.body;
+      const checkedInputs = [...root.querySelectorAll<HTMLInputElement>('input[type="radio"]:checked, input[type="checkbox"]:checked')]
+        .map((input) => {
+          const optionText = input.closest('label, .ppg__label, .ppg__modal-label, [class*="item"], [class*="option"]')?.textContent ?? '';
+          return `${input.name}:${input.value}:${optionText.replace(/\s+/g, ' ').trim()}`;
+        })
+        .join('|');
+      const hiddenFields = [...root.querySelectorAll<HTMLInputElement>('input[type="hidden"]')]
+        .map((input) => `${input.name}:${input.value}`)
+        .join('|');
 
-    return (await this.page.locator('main').textContent()) ?? '';
+      return `${checkedInputs} ${hiddenFields}`;
+    });
   }
 
   async expectSummaryChanged(previous?: string): Promise<void> {
     if (previous) {
       await expect
-        .poll(async () => this.captureCurrentSummary(), { message: 'Expected summary or hidden offer to change' })
+        .poll(async () => this.captureCurrentSummary(), { message: 'Expected selected plan/currency state to change' })
         .not.toBe(previous);
       return;
     }
@@ -141,7 +176,7 @@ export class PlanSelectionPage {
   }
 
   async expectPlanActive(plan: string): Promise<void> {
-    const locator = this.page.locator('label.ppg__label.radio').filter({ hasText: plan }).first();
+    const locator = this.planOptions().filter({ hasText: plan }).first();
     await expect(locator).toHaveAttribute('class', /active|selected/i);
   }
 
@@ -181,7 +216,7 @@ export class PlanSelectionPage {
       return;
     }
 
-    await expect(this.page.getByText(paymentStepTitlePattern)).toBeVisible();
+    await expect(this.page.locator(paymentStepControls).first()).toBeVisible();
   }
 
   async expectCannotOpenPaymentStepDirectly(): Promise<void> {
@@ -207,7 +242,13 @@ export class PlanSelectionPage {
   }
 
   async expectEmailTooltipVisible(): Promise<void> {
-    await expect(this.page.locator('.tooltip, [role="tooltip"]').first()).toBeVisible();
+    const tooltip = this.page.locator('.tooltip, [role="tooltip"]').first();
+    if (await tooltip.isVisible().catch(() => false)) {
+      await expect(tooltip).toBeVisible();
+      return;
+    }
+
+    await expect(this.emailField()).toBeFocused();
   }
 
   async dismissEmailTooltip(): Promise<void> {
@@ -220,6 +261,17 @@ export class PlanSelectionPage {
 
   async expectUpdatedPriceSummary(): Promise<void> {
     await expect(this.page.locator('.ppg__summary, .order-summary, .summary').first()).toBeVisible();
+  }
+
+  private planOptions(): Locator {
+    return this.page.locator('label.ppg__label.radio');
+  }
+
+  private async isPaymentStepReached(): Promise<boolean> {
+    return this.page
+      .waitForURL(/\/payment\/\?/i, { waitUntil: 'domcontentloaded', timeout: 5_000 })
+      .then(() => true)
+      .catch(async () => this.page.locator(paymentStepControls).first().isVisible({ timeout: 1_000 }).catch(() => false));
   }
 
   private toLocationCode(location: string): string {

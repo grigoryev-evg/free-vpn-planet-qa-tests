@@ -61,7 +61,7 @@ The assignment-critical suite is tagged with `@assignment` and validates the use
 |---|---|---|
 | Sign Up checkout | `TC_SIGNUP_001` | Opens `freevpnplanet.com`, navigates through `Log In -> Sign Up`, fills a fresh user, selects card payment, accepts terms, submits `Get your subscription`, and verifies that the browser reaches an allowed hosted payment provider. |
 | Personal VPN RU | `TC_VPN_RU_001`, `TC_VPN_RU_003` | Opens `planetconfig.com`, selects purchase options, continues to payment method selection, covers card and cryptocurrency payment methods, submits payment, and verifies hosted checkout navigation. |
-| Personal VPN EN | `TC_VPN_EN_001`, `TC_VPN_EN_002`, `TC_VPN_EN_003`, `TC_VPN_EN_004` | Opens `personal.freevpnplanet.com`, covers monthly and annual plans, covers card and PayPal payment methods, submits payment, and verifies hosted checkout navigation. |
+| Personal VPN EN | `TC_VPN_EN_001`, `TC_VPN_EN_002`, `TC_VPN_EN_003`, `TC_VPN_EN_004` | Opens `personal.freevpnplanet.com`, covers monthly and annual plans, covers card, cryptocurrency, and the default available payment method, submits payment, and verifies hosted checkout navigation. |
 | Payment contract sanity | `API_001`, `API_003`, `API_004` | Checks public funnel availability, payment provider allowlist normalization, and that the RU payment step exposes expected payment controls before submit. |
 
 Additional non-assignment scenarios are kept under the same specs to document wider QA coverage:

@@ -18,6 +18,8 @@ export class PaymentPage {
   }
 
   async expectFailedPaymentState(): Promise<void> {
-    await expect.poll(async () => this.page.url()).toMatch(/failed|declined|error/i);
+    await expect
+      .poll(async () => `${this.page.url()} ${(await this.page.locator('body').textContent().catch(() => '')) ?? ''}`)
+      .toMatch(/failed|declined|error|mocked declined payment/i);
   }
 }

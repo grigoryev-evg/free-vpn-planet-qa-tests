@@ -5,8 +5,8 @@
   "description": "Playwright E2E automation for Free VPN Planet QA assignment",
   "scripts": {
     "test": "playwright test",
-    "test:assignment": "playwright test --grep @assignment",
-    "test:smoke": "playwright test --grep @smoke",
+    "test:assignment": "playwright test --grep @assignment --project=chromium",
+    "test:smoke": "playwright test --grep @smoke --project=chromium",
     "test:signup": "playwright test tests-e2e/tests/specs/signup.e2e.ts",
     "test:personal-ru": "playwright test tests-e2e/tests/specs/personal_vpn_ru.e2e.ts",
     "test:personal-en": "playwright test tests-e2e/tests/specs/personal_vpn_en.e2e.ts",

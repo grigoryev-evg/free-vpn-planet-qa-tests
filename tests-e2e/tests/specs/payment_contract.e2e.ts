@@ -29,7 +29,7 @@ test.describe('Payment contract and network checks', () => {
     await payment.selectCard();
     await payment.acceptTerms();
 
-    const targetPage = await payment.submitSubscription();
+    const targetPage = await payment.submitPayment();
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 

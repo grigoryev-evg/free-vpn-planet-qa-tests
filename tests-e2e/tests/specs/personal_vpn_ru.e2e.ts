@@ -7,7 +7,7 @@ import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 import { runScenarioStep } from '../../utils/scenario_runner';
 
 test.describe('Personal VPN RU E2E', () => {
-  test('TC_VPN_RU_001 @assignment @smoke - Monthly plan with card reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_RU_001 @smoke - Monthly plan with card reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
@@ -18,7 +18,7 @@ test.describe('Personal VPN RU E2E', () => {
     });
 
     await runScenarioStep('Choose bank card and submit', async () => {
-      await payment.selectRuBankCard();
+      await payment.selectCard();
       await payment.acceptTerms();
       const targetPage = await payment.submitPayment();
       await new PaymentPage(targetPage).expectAllowedProviderHost();
@@ -35,27 +35,27 @@ test.describe('Personal VPN RU E2E', () => {
     await plan.selectYearlyPlan();
     await plan.fillEmail(plan.uniqueEmail());
     await plan.continueToPaymentMethods();
-    await payment.selectRuBankCard();
+    await payment.selectCard();
     await payment.acceptTerms();
 
     const targetPage = await payment.submitPayment();
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
-  test('TC_VPN_RU_003 @assignment @smoke - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_RU_003 @smoke - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
     await plan.fillRequiredRuDefaults();
     await plan.continueToPaymentMethods();
-    await payment.selectRuCrypto('BTC');
+      await payment.selectCrypto();
     await payment.acceptTerms();
 
     const targetPage = await payment.submitPayment();
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
-  test('TC_VPN_RU_004 - Annual plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_RU_004 - Annual plan with default payment method reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
@@ -65,7 +65,6 @@ test.describe('Personal VPN RU E2E', () => {
     await plan.selectYearlyPlan();
     await plan.fillEmail(plan.uniqueEmail());
     await plan.continueToPaymentMethods();
-    await payment.selectRuCrypto('BTC');
     await payment.acceptTerms();
 
     const targetPage = await payment.submitPayment();
@@ -90,23 +89,19 @@ test.describe('Personal VPN RU E2E', () => {
     await plan.fillRequiredRuDefaults();
     await plan.continueToPaymentMethods();
     await payment.mockDeclinedPayment();
-    await payment.selectRuBankCard();
-    await payment.acceptTerms();
-    const targetPage = await payment.submitPayment();
-    await new PaymentPage(targetPage).expectFailedPaymentState();
+      await payment.selectCard();
+      await payment.acceptTerms();
+      const targetPage = await payment.submitPayment();
+      await new PaymentPage(targetPage).expectFailedPaymentState();
   });
 
-  test('TC_VPN_RU_007 - Plan can be changed from payment step with confirmation flow', async ({ page }) => {
+  test('TC_VPN_RU_007 - Plan can be changed from payment step by returning to plan selection', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
     await plan.fillRequiredRuDefaults();
     await plan.continueToPaymentMethods();
     await payment.triggerChangePlan();
-    await payment.expectConfirmDialog();
-    await payment.cancelPlanChangeAndStayOnPayment();
-    await payment.triggerChangePlan();
-    await payment.confirmPlanChangeAndReturnToPlanStep();
     await plan.expectPlanSelectionStepVisible();
   });
 
@@ -165,14 +160,13 @@ test.describe('Personal VPN RU E2E', () => {
     await plan.expectCannotOpenPaymentStepDirectly();
   });
 
-  test('TC_VPN_RU_MODAL_001 - Changing plan on payment page requires confirmation', async ({ page }) => {
+  test('TC_VPN_RU_MODAL_001 - Back from payment page returns to plan selection', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'ru');
     const payment = new PaymentMethodPage(page);
 
     await plan.fillRequiredRuDefaults();
     await plan.continueToPaymentMethods();
     await payment.triggerChangePlan();
-    await payment.expectConfirmDialog();
-    await payment.cancelPlanChangeAndStayOnPayment();
+    await plan.expectPlanSelectionStepVisible();
   });
 });

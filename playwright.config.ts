@@ -8,11 +8,11 @@ const isCi = process.env.CI === 'true';
 export default defineConfig({
   testDir: './tests-e2e/tests/specs',
   testMatch: '**/*.e2e.ts',
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: isCi,
-  retries: isCi ? 2 : 0,
-  workers: 1,
-  timeout: 90_000,
+  retries: isCi ? 1 : 0,
+  workers: undefined,
+  timeout: 60_000,
   reporter: [
     ['list'],
     ['html', { outputFolder: 'playwright-report', open: 'never' }],

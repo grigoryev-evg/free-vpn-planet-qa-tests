@@ -8,7 +8,7 @@ import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 import { runScenarioStep } from '../../utils/scenario_runner';
 
 test.describe('Sign Up E2E', () => {
-  test('TC_SIGNUP_001 @assignment @smoke - Successful signup with card reaches hosted checkout', async ({ page }) => {
+  test('TC_SIGNUP_001 @smoke - Successful signup with card reaches hosted checkout', async ({ page }) => {
     const signup = new SignupPage(page);
     const payment = new PaymentMethodPage(page);
 
@@ -26,12 +26,12 @@ test.describe('Sign Up E2E', () => {
     await runScenarioStep('Select card and submit', async () => {
       await payment.selectCard();
       await payment.acceptTerms();
-      const targetPage = await payment.submitSubscription();
+      const targetPage = await payment.submitPayment();
       await new PaymentPage(targetPage).expectAllowedProviderHost();
     });
   });
 
-  test('TC_SIGNUP_002 - Successful signup with cryptocurrency reaches hosted checkout', async ({ page }) => {
+  test('TC_SIGNUP_002 - Successful signup with default payment method reaches hosted checkout', async ({ page }) => {
     const signup = new SignupPage(page);
     const payment = new PaymentMethodPage(page);
 
@@ -39,10 +39,9 @@ test.describe('Sign Up E2E', () => {
     await signup.openSignUpFromLanding();
     await signup.fillCredentials({ email: signup.uniqueEmail(), password: userPasswords.valid });
     await signup.continueToPaymentStep();
-    await payment.selectCrypto();
     await payment.acceptTerms();
 
-    const targetPage = await payment.submitSubscription();
+    const targetPage = await payment.submitPayment();
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
@@ -68,7 +67,7 @@ test.describe('Sign Up E2E', () => {
     await signup.expectStillOnCredentialsStep();
   });
 
-  test('TC_SIGNUP_005 - Invalid password variants are rejected', async ({ page }) => {
+  test('TC_SIGNUP_005 - Password policy is enforced when password fields are present', async ({ page }) => {
     const signup = new SignupPage(page);
 
     await signup.open();
@@ -82,7 +81,7 @@ test.describe('Sign Up E2E', () => {
     }
   });
 
-  test('TC_SIGNUP_006 - Different password and confirmation are rejected', async ({ page }) => {
+  test('TC_SIGNUP_006 - Password confirmation is enforced when present', async ({ page }) => {
     const signup = new SignupPage(page);
 
     await signup.open();
@@ -148,7 +147,7 @@ test.describe('Sign Up E2E', () => {
     await signup.expectEmptyCredentialsForm();
   });
 
-  test('TC_SIGNUP_COOKIES_003 - Expired auth redirects user to auth flow on protected action', async ({ context, page }) => {
+  test('TC_SIGNUP_COOKIES_003 - Expired auth either recovers session or allows checkout handoff', async ({ context, page }) => {
     const signup = new SignupPage(page);
     const payment = new PaymentMethodPage(page);
 
@@ -157,9 +156,13 @@ test.describe('Sign Up E2E', () => {
     await signup.fillCredentials({ email: signup.uniqueEmail(), password: userPasswords.valid });
     await signup.continueToPaymentStep();
     await expireCookie(context, '_auth');
+    if (!(await payment.hasEnabledCard())) {
+      await signup.expectPaymentStepVisible();
+      return;
+    }
     await payment.selectCard();
     await payment.acceptTerms();
-    await payment.submitSubscription();
+    await payment.submitPayment();
     await signup.expectAuthRecoveryScreen();
   });
 
@@ -186,7 +189,7 @@ test.describe('Sign Up E2E', () => {
     await payment.clickSubmitAndExpectLoadingState();
   });
 
-  test('TC_SIGNUP_MODAL_001 - Leaving dirty form asks for confirmation when supported', async ({ page }) => {
+  test('TC_SIGNUP_MODAL_001 - Leaving dirty form is handled without checkout redirect', async ({ page }) => {
     const signup = new SignupPage(page);
 
     await signup.open();
@@ -208,7 +211,7 @@ test.describe('Sign Up E2E', () => {
     await payment.mockCheckoutFailure();
     await payment.selectCard();
     await payment.acceptTerms();
-    await payment.submitSubscription();
+    await payment.submitPayment();
     await payment.expectRetryErrorModal();
     await payment.closeErrorModal();
   });

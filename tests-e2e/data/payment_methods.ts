@@ -6,6 +6,7 @@ export const paymentMethods = {
 
 export const allowedPaymentHosts = [
   'checkout.stripe.com',
+  'www.coinpayments.net',
   'paymentt.kassa.ai',
   'yoomoney.ru',
   'www.paypal.com'

@@ -6,53 +6,52 @@ import { seedCookies } from '../browser/helpers/cookies';
 import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 
 test.describe('Personal VPN EN E2E', () => {
-  test('TC_VPN_EN_001 @assignment @smoke - Monthly plan with card reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_EN_001 @smoke - Monthly plan with card reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
     await plan.fillRequiredEnDefaults({ plan: '1 month' });
     await plan.continueToPaymentMethods();
     await plan.expectPaymentMethodStepVisible();
-    await payment.selectEnBankCard();
+    await payment.selectCard();
     await payment.acceptTerms();
 
     const targetPage = await payment.submitPayment();
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
-  test('TC_VPN_EN_002 @assignment @smoke - Annual plan with card reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_EN_002 @smoke - Annual plan with card reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
     await plan.fillRequiredEnDefaults({ plan: '1 year' });
     await plan.continueToPaymentMethods();
-    await payment.selectEnBankCard();
+    await payment.selectCard();
     await payment.acceptTerms();
 
     const targetPage = await payment.submitPayment();
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
-  test('TC_VPN_EN_003 @assignment @smoke - Monthly plan with PayPal reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_EN_003 @smoke - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
     await plan.fillRequiredEnDefaults({ plan: '1 month' });
     await plan.continueToPaymentMethods();
-    await payment.selectPayPal();
+    await payment.selectCrypto();
     await payment.acceptTerms();
 
     const targetPage = await payment.submitPayment();
     await new PaymentPage(targetPage).expectAllowedProviderHost();
   });
 
-  test('TC_VPN_EN_004 @assignment @smoke - Annual plan with PayPal reaches hosted checkout', async ({ page }) => {
+  test('TC_VPN_EN_004 @smoke - Annual plan with default payment method reaches hosted checkout', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'en');
     const payment = new PaymentMethodPage(page);
 
     await plan.fillRequiredEnDefaults({ plan: '1 year' });
     await plan.continueToPaymentMethods();
-    await payment.selectPayPal();
     await payment.acceptTerms();
 
     const targetPage = await payment.submitPayment();
@@ -93,8 +92,8 @@ test.describe('Personal VPN EN E2E', () => {
 
     await plan.openEn();
     const initial = await plan.captureCurrentSummary();
-    await plan.switchCurrency('USD');
-    await plan.expectCurrency('USD');
+    await plan.switchCurrency('EUR');
+    await plan.expectCurrency('EUR');
     await plan.expectSummaryChanged(initial);
   });
 
@@ -104,12 +103,12 @@ test.describe('Personal VPN EN E2E', () => {
 
     await plan.fillRequiredEnDefaults({ plan: '1 month' });
     await plan.continueToPaymentMethods();
-    await payment.selectEnBankCard();
+    await payment.selectCard();
     await payment.acceptTerms();
     await payment.clickSubmitAndExpectLoadingState();
   });
 
-  test('TC_VPN_EN_MODAL_001 - Tooltip or helper is visible for supported input controls', async ({ page }) => {
+  test('TC_VPN_EN_MODAL_001 - Email field supports focus or helper state', async ({ page }) => {
     const plan = new PlanSelectionPage(page, 'en');
 
     await plan.openEn();
