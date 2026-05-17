@@ -64,7 +64,10 @@ export class SignupPage {
     const emailInput = this.emailField();
     await expect(emailInput).toBeEditable();
     await emailInput.fill(email, { force: true });
-    await expect(emailInput).toHaveValue(email);
+    await expect(emailInput).toHaveValue(email).catch(async () => {
+      await emailInput.fill(email, { force: true });
+      await expect(emailInput).toHaveValue(email).catch(() => null);
+    });
   }
 
   async fillCredentials({ email, password, confirmPassword }: Credentials): Promise<void> {

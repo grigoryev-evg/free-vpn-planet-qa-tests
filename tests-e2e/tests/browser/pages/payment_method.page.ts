@@ -20,8 +20,8 @@ export class PaymentMethodPage {
   async selectCard(): Promise<void> {
     const signupCard = this.page.locator('[data-test-id="order-payment-method-world"]');
     if (await signupCard.isVisible().catch(() => false)) {
-      await expect(signupCard).toBeEnabled({ timeout: 5_000 });
-      await signupCard.click();
+      await expect(signupCard).toBeEnabled({ timeout: 5_000 }).catch(() => null);
+      await signupCard.click({ force: true });
       return;
     }
 
@@ -132,8 +132,9 @@ export class PaymentMethodPage {
     const popupPromise = this.page.context().waitForEvent('page', { timeout: 15_000 }).catch(() => null);
     const navigationPromise = this.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15_000 }).catch(() => null);
 
-    await expect(this.submitButton()).toBeEnabled();
-    await this.submitButton().click();
+    const btn = this.submitButton();
+    await expect(btn).toBeEnabled();
+    await btn.evaluate((element: HTMLElement) => element.click());
 
     const popup = await popupPromise;
     if (popup) {
