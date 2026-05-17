@@ -11,9 +11,6 @@ on:
         options:
           - assignment
           - all
-          - smoke
-          - e2e-ui
-          - e2e-api
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -28,9 +25,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  smoke:
+  tests:
     runs-on: ubuntu-latest
-    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'assignment' || github.event.inputs.suite == 'smoke'
+    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'assignment'
 
     outputs:
       pages_url: ${{ steps.deploy-pages.outputs.page_url }}
@@ -58,7 +55,7 @@ jobs:
             playwright-${{ runner.os }}-
 
       - name: Install Playwright Chromium
-        if: github.event.inputs.suite == 'assignment' || github.event.inputs.suite == 'smoke'
+        if: github.event.inputs.suite == 'assignment'
         run: npx playwright install --with-deps chromium
 
       - name: Install Playwright browsers (all)
@@ -69,23 +66,23 @@ jobs:
         if: github.event.inputs.suite == 'assignment'
         run: npm run test:assignment
 
-      - name: Run smoke suite
-        if: github.event.inputs.suite != 'assignment'
-        run: npm run test:smoke
+      - name: Run full test suite
+        if: github.event.inputs.suite == 'all'
+        run: npm run test:all
 
-      - name: Upload smoke HTML report
+      - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-smoke
+          name: playwright-report
           path: playwright-report/
           if-no-files-found: ignore
 
-      - name: Upload smoke test results
+      - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-smoke
+          name: test-results
           path: |
             test-results/
             artifacts/
@@ -108,18 +105,18 @@ jobs:
         continue-on-error: true
         uses: actions/deploy-pages@v4
 
-      - name: Publish smoke summary
+      - name: Publish summary
         if: always()
         shell: bash
         run: |
           {
-            echo "## Smoke Report"
+            echo "## Playwright E2E Report"
             echo
             echo "- Suite: \`${{ github.event.inputs.suite }}\`"
-            echo "- HTML report artifact: \`playwright-report-smoke\`"
-            echo "- Test results artifact: \`test-results-smoke\`"
+            echo "- HTML report artifact: \`playwright-report\`"
+            echo "- Test results artifact: \`test-results\`"
             echo
-            echo "Open the HTML report by downloading the \`playwright-report-smoke\` artifact and opening \`index.html\`."
+            echo "Open the HTML report by downloading the \`playwright-report\` artifact and opening \`index.html\`."
             echo
             if [ -n "${{ steps.deploy-pages.outputs.page_url }}" ]; then
               echo "- GitHub Pages report: ${{ steps.deploy-pages.outputs.page_url }}"
@@ -127,117 +124,3 @@ jobs:
               echo "- GitHub Pages report: not available for this run"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-
-  e2e-ui:
-    runs-on: ubuntu-latest
-    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'e2e-ui'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache-ui
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox webkit
-
-      - name: Run E2E UI suite
-        run: npm run test:e2e-ui
-
-      - name: Upload E2E UI HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-e2e-ui
-          path: playwright-report/
-          if-no-files-found: ignore
-
-      - name: Upload E2E UI test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-e2e-ui
-          path: |
-            test-results/
-            artifacts/
-          if-no-files-found: ignore
-
-      - name: Publish E2E UI summary
-        if: always()
-        shell: bash
-        run: |
-          {
-            echo "## E2E UI Report"
-            echo
-            echo "- Suite: \`e2e-ui\`"
-            echo "- HTML report artifact: \`playwright-report-e2e-ui\`"
-            echo "- Test results artifact: \`test-results-e2e-ui\`"
-            echo
-            echo "Open the HTML report by downloading the \`playwright-report-e2e-ui\` artifact and opening \`index.html\`."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  e2e-api:
-    runs-on: ubuntu-latest
-    if: github.event.inputs.suite == 'all' || github.event.inputs.suite == 'e2e-api'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --prefer-offline
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache-api
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run E2E API suite
-        run: npm run test:e2e-api
-
-      - name: Upload E2E API HTML report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-e2e-api
-          path: playwright-report/
-          if-no-files-found: ignore
-
-      - name: Upload E2E API test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-e2e-api
-          path: |
-            test-results/
-            artifacts/
-          if-no-files-found: ignore
