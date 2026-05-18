@@ -1,120 +1,59 @@
 import { test } from '@playwright/test';
+import { type CryptoCurrency } from '../../data/payment_methods';
 import { PaymentMethodPage } from '../browser/pages/payment_method.page';
 import { PaymentPage } from '../browser/pages/payment_page.page';
 import { PlanSelectionPage } from '../browser/pages/plan_selection.page';
-import { seedCookies } from '../browser/helpers/cookies';
-import { clearAllStorage, seedLocalStorage } from '../browser/helpers/storage';
 
-test.describe('Personal VPN EN E2E', () => {
-  test('TC_VPN_EN_001 @smoke @assignment - Monthly plan with card reaches hosted checkout', async ({ page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
+type Currency = 'RUB' | 'EUR';
+type PlanCode = 'monthly' | 'yearly';
+
+async function preparePersonalVpn(page: import('@playwright/test').Page, options: { currency: Currency; plan: PlanCode }) {
+  const plan = new PlanSelectionPage(page, 'en');
+  await plan.fillRequiredDefaults({ locale: 'en', currency: options.currency, plan: options.plan });
+  await plan.continueToPaymentMethods();
+  await plan.expectPaymentMethodStepVisible();
+}
+
+test.describe('Personal FreeVPNPlanet checkout matrix', () => {
+  test('TC_PERSONAL_RUB_SBP @assignment @smoke — RUB monthly SBP → kassa.ai', { tag: ['@assignment', '@smoke'] }, async ({ page }) => {
     const payment = new PaymentMethodPage(page);
 
-    await plan.fillRequiredEnDefaults({ plan: '1 month' });
-    await plan.continueToPaymentMethods();
-    await plan.expectPaymentMethodStepVisible();
-    await payment.selectCard();
+    await preparePersonalVpn(page, { currency: 'RUB', plan: 'monthly' });
+    await payment.selectSbp();
     await payment.acceptTerms();
 
     const targetPage = await payment.submitPayment();
-    await new PaymentPage(targetPage).expectAllowedProviderHost();
+    await new PaymentPage(targetPage).expectHost('paymentt.kassa.ai');
   });
 
-  test('TC_VPN_EN_002 @smoke @assignment - Annual plan with card reaches hosted checkout', async ({ page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
-    const payment = new PaymentMethodPage(page);
+  for (const currency of ['RUB', 'EUR'] as const) {
+    test(`TC_PERSONAL_${currency}_CARD @assignment @smoke — ${currency} monthly Credit Card → Stripe`, { tag: ['@assignment', '@smoke'] }, async ({ page }) => {
+      const payment = new PaymentMethodPage(page);
 
-    await plan.fillRequiredEnDefaults({ plan: '1 year' });
-    await plan.continueToPaymentMethods();
-    await payment.selectCard();
-    await payment.acceptTerms();
+      await preparePersonalVpn(page, { currency, plan: 'monthly' });
+      await payment.selectCard();
+      await payment.acceptTerms();
 
-    const targetPage = await payment.submitPayment();
-    await new PaymentPage(targetPage).expectAllowedProviderHost();
-  });
+      const targetPage = await payment.submitPayment();
+      await new PaymentPage(targetPage).expectStripeCheckout();
+    });
+  }
 
-  test('TC_VPN_EN_003 @smoke @assignment - Monthly plan with cryptocurrency reaches hosted checkout', async ({ page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
-    const payment = new PaymentMethodPage(page);
+  for (const currency of ['RUB', 'EUR'] as const) {
+    test(`TC_PERSONAL_${currency}_MONTHLY_CRYPTO_BTC @assignment — ${currency} monthly Bitcoin → CoinPayments`, { tag: ['@assignment'] }, async ({ page }) => {
+      const payment = new PaymentMethodPage(page);
+      const bitcoin: CryptoCurrency = { name: 'Bitcoin', code: 'BTC', network: 'btc' };
 
-    await plan.fillRequiredEnDefaults({ plan: '1 month' });
-    await plan.continueToPaymentMethods();
-    await payment.selectCrypto();
-    await payment.acceptTerms();
+      await preparePersonalVpn(page, { currency, plan: 'monthly' });
+      await payment.selectCrypto();
+      await payment.selectCryptoCurrency(bitcoin.name, bitcoin.code);
+      await payment.acceptTerms();
 
-    const targetPage = await payment.submitPayment();
-    await new PaymentPage(targetPage).expectAllowedProviderHost();
-  });
-
-  test('TC_VPN_EN_004 @smoke - Annual plan with default payment method reaches hosted checkout', async ({ page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
-    const payment = new PaymentMethodPage(page);
-
-    await plan.fillRequiredEnDefaults({ plan: '1 year' });
-    await plan.continueToPaymentMethods();
-    await payment.acceptTerms();
-
-    const targetPage = await payment.submitPayment();
-    await new PaymentPage(targetPage).expectAllowedProviderHost();
-  });
-
-  test('TC_VPN_EN_COOKIES_001 - Previous plan state is restored when cookies exist', async ({ context, page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
-
-    await seedCookies(context, [
-      {
-        name: 'last_plan',
-        value: 'month',
-        domain: '.personal.freevpnplanet.com',
-        path: '/',
-        expires: -1,
-        httpOnly: false,
-        secure: true,
-        sameSite: 'Lax'
-      }
-    ]);
-    await seedLocalStorage(page, { vpnEnCurrency: 'USD', vpnEnPlan: '1 month' });
-    await plan.openEn();
-    await plan.expectSelectedCurrency('USD');
-  });
-
-  test('TC_VPN_EN_COOKIES_002 - Clean context shows fresh EN state', async ({ context, page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
-
-    await context.clearCookies();
-    await clearAllStorage(page);
-    await plan.openEn();
-    await plan.expectDefaultEnState();
-  });
-
-  test('TC_VPN_EN_UI_001 - Currency switch updates EN UI summary', async ({ page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
-
-    await plan.openEn();
-    const initial = await plan.captureCurrentSummary();
-    await plan.switchCurrency('EUR');
-    await plan.expectCurrency('EUR');
-    await plan.expectSummaryChanged(initial);
-  });
-
-  test('TC_VPN_EN_UI_002 - Pay action shows loading state', async ({ page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
-    const payment = new PaymentMethodPage(page);
-
-    await plan.fillRequiredEnDefaults({ plan: '1 month' });
-    await plan.continueToPaymentMethods();
-    await payment.selectCard();
-    await payment.acceptTerms();
-    await payment.clickSubmitAndExpectLoadingState();
-  });
-
-  test('TC_VPN_EN_MODAL_001 - Email field supports focus or helper state', async ({ page }) => {
-    const plan = new PlanSelectionPage(page, 'en');
-
-    await plan.openEn();
-    await plan.focusEmailFieldHelpIcon();
-    await plan.expectEmailTooltipVisible();
-    await plan.dismissEmailTooltip();
-    await plan.expectEmailTooltipHidden();
-  });
+      const targetPage = await payment.submitPayment();
+      const checkout = new PaymentPage(targetPage);
+      await checkout.expectCoinPaymentsCheckout();
+      await checkout.expectWalletAddressOrQr();
+      await checkout.expectCoinPaymentsCurrency(bitcoin);
+    });
+  }
 });

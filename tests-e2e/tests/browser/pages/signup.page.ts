@@ -8,6 +8,8 @@ type Credentials = {
 };
 
 export class SignupPage {
+  private submittedEmail?: string;
+
   constructor(private readonly page: Page) {}
 
   uniqueEmail(): string {
@@ -36,7 +38,7 @@ export class SignupPage {
 
   emailField(): Locator {
     return this.page
-      .locator('input[placeholder="Enter email"], input[placeholder*="email" i], input[name="email"], input[type="email"]')
+      .locator('[data-test-id="order-email-input"], input[placeholder="Enter email"], input[placeholder*="email" i], input[name="email"], input[type="email"]')
       .first();
   }
 
@@ -56,18 +58,22 @@ export class SignupPage {
 
   nextButton(): Locator {
     return this.page
-      .locator('[data-test-id="order-next-button"], button:has-text("Next"), button:has-text("Get your subscription")')
+      .locator('[data-test-id="order-login-submit-button"], [data-test-id="order-next-button"], button:has-text("Next")')
       .first();
   }
 
   async fillEmailOnly(email: string): Promise<void> {
+    this.submittedEmail = email;
     const emailInput = this.emailField();
     await expect(emailInput).toBeEditable();
-    await emailInput.fill(email, { force: true });
+    await emailInput.click();
+    await emailInput.fill(email);
     await expect(emailInput).toHaveValue(email).catch(async () => {
-      await emailInput.fill(email, { force: true });
+      await emailInput.fill(email);
       await expect(emailInput).toHaveValue(email).catch(() => null);
     });
+    await emailInput.blur().catch(() => null);
+    await this.page.waitForTimeout(300);
   }
 
   async fillCredentials({ email, password, confirmPassword }: Credentials): Promise<void> {
@@ -85,31 +91,72 @@ export class SignupPage {
   }
 
   async continueToPaymentStep(): Promise<void> {
-    const next = this.nextButton();
-    if (await next.isVisible().catch(() => false)) {
-      await expect(next).toBeEnabled({ timeout: 3_000 }).catch(() => null);
-      if (await next.isEnabled().catch(() => false)) {
-        await next.click();
-      } else {
-        await next.click({ force: true }).catch(() => null);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) {
+        await this.page.waitForTimeout(10_000);
+        await this.page.reload({ waitUntil: 'domcontentloaded' });
+        await expect(this.emailField()).toBeVisible({ timeout: 15_000 });
+        await this.fillEmailOnly(this.uniqueEmail());
       }
-      return;
+
+      const next = this.nextButton();
+      if (await next.isVisible().catch(() => false)) {
+        const wasEnabled = await next.isEnabled({ timeout: 15_000 }).catch(() => false);
+        if (wasEnabled) {
+          await next.click();
+          if (await this.isPaymentStepEnabled()) {
+            return;
+          }
+          continue;
+        }
+      }
+
+      if (await this.isPaymentStepEnabled()) {
+        return;
+      }
     }
 
-    const fallbackNext = this.page.getByRole('button', { name: /^next$/i });
-    if (await fallbackNext.isEnabled().catch(() => false)) {
-      await fallbackNext.click();
-    } else {
-      await fallbackNext.click({ force: true }).catch(() => null);
-    }
+    await this.waitForPaymentStepEnabled();
   }
 
   async expectPaymentStepVisible(): Promise<void> {
+    await this.waitForPaymentStepEnabled();
+    const submitBtn = this.page.locator('[data-test-id="order-payment-submit-button"]');
+    await expect(submitBtn).toBeVisible({ timeout: 10_000 });
+    await expect(submitBtn).toBeEnabled({ timeout: 5_000 }).catch(() => null);
+
+    const enabledMethod = this.page.locator(
+      '[data-test-id="order-payment-method-world"]:not([disabled]), [data-test-id="order-payment-method-crypto-current"]:not([disabled])'
+    ).first();
+    await expect(enabledMethod).toBeVisible({ timeout: 5_000 }).catch(async () => {
+      await expect(
+        this.page.locator(
+          '[data-test-id="order-payment-method-world"], [data-test-id="order-payment-method-crypto-current"]'
+        ).first()
+      ).toBeVisible();
+    });
+  }
+
+  private async isPaymentStepEnabled(): Promise<boolean> {
+    return this.waitForPaymentStepEnabled(15_000).then(() => true).catch(() => false);
+  }
+
+  private async waitForPaymentStepEnabled(timeout = 15_000): Promise<void> {
+    await expect(this.page.locator('[data-test-id="order-payment-submit-button"]')).toBeVisible({ timeout });
+
+    const paymentRoot = this.page.locator('[data-test-id="order-payment-root"]');
+    if (await paymentRoot.count()) {
+      await expect(
+        paymentRoot,
+        `Payment step should not remain disabled after email submit${this.submittedEmail ? ` (${this.submittedEmail})` : ''}`
+      ).not.toHaveClass(/payment--disabled/, { timeout });
+    }
+
     await expect(
       this.page.locator(
-        '[data-test-id="order-payment-method-world"], [data-test-id="order-payment-method-crypto-current"], [data-test-id="order-payment-submit-button"]'
+        '[data-test-id="order-payment-method-world"]:not([disabled]), [data-test-id="order-payment-method-crypto-current"]:not([disabled])'
       ).first()
-    ).toBeVisible();
+    ).toBeVisible({ timeout });
   }
 
   async expectStillOnCredentialsStep(): Promise<void> {

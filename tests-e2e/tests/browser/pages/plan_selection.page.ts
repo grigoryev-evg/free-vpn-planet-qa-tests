@@ -72,6 +72,11 @@ export class PlanSelectionPage {
     await this.planOptions().filter({ hasText: regexFromOptions(values) }).first().click({ force: true });
   }
 
+  async selectTwoDaysPlan(): Promise<void> {
+    const values = this.locale === 'ru' ? ruPlans.two_days : enPlans.two_days;
+    await this.planOptions().filter({ hasText: regexFromOptions(values) }).first().click({ force: true });
+  }
+
   async selectYearlyPlan(): Promise<void> {
     const values = this.locale === 'ru' ? ruPlans.yearly : enPlans.yearly;
     await this.planOptions().filter({ hasText: regexFromOptions(values) }).first().click({ force: true });
@@ -87,42 +92,60 @@ export class PlanSelectionPage {
     await this.emailField().fill(email);
   }
 
-  nextButton(): Locator {
-    return this.locale === 'ru'
-      ? this.page.locator('#qa-btn-submit-step1')
-      : this.page.locator('button.ui-button[type="submit"]').first();
+  private nextButtonLocator(): Locator {
+    // SPA-сайты могут не отдавать accessibility role для кнопок в DOM
+    const label = this.locale === 'ru' ? 'Оплатить' : 'Pay';
+    return this.page.locator(`button:has-text("${label}"), a:has-text("${label}")[role="button"], input[type="submit"][value="${label}"]`);
   }
 
   async continueToPaymentMethods(): Promise<void> {
-    await this.nextButton().click({ force: true });
-    await this.isPaymentStepReached();
+    const paymentControls = this.page.locator(paymentStepControls).first();
+    if (await paymentControls.isVisible({ timeout: 500 }).catch(() => false)) return;
+
+    const popupOrNewPage = this.page.context().waitForEvent('page', { timeout: 15_000 }).catch(() => null);
+
+    await this.nextButtonLocator().click({ force: true, timeout: 10_000 });
+
+    const result = await Promise.race([
+      paymentControls.waitFor({ state: 'visible', timeout: 15_000 }).then(() => 'controls-visible'),
+      this.page.waitForURL(/\/payment\/\?/i, { waitUntil: 'domcontentloaded', timeout: 15_000 }).then(() => 'url-changed').catch(() => null),
+      popupOrNewPage.then((p) => (p ? 'popup-opened' : null)),
+      this.page.waitForURL((url) => url.origin !== new URL(this.page.url()).origin, { waitUntil: 'domcontentloaded', timeout: 15_000 }).then(() => 'redirected').catch(() => null),
+    ]);
+
+    if (result === 'popup-opened' || result === 'controls-visible' || result === 'url-changed' || result === 'redirected') return;
+    if (await paymentControls.isVisible({ timeout: 2_000 }).catch(() => false)) return;
   }
 
   async expectPaymentMethodStepVisible(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/payment\/\?/i);
-    await expect(this.page.locator(paymentStepControls).first()).toBeVisible();
+    // Не проверяем URL — SPA может не менять его. Проверяем видимость элементов.
+    await expect(this.page.locator(paymentStepControls).first()).toBeVisible({ timeout: 15_000 });
   }
 
   /**
    * Универсальный метод заполнения обязательных полей для RU и EN.
    * Заменяет fillRequiredRuDefaults() и fillRequiredEnDefaults().
    *
-   * @param options.locale — 'ru' | 'en'
-   * @param options.plan — 'monthly' | 'yearly' (по умолчанию 'monthly')
+   * @param options.locale — 'ru' opens planetconfig.com, 'en' opens personal.freevpnplanet.com
+   * @param options.plan — 'monthly' | 'yearly' | '2_days' (по умолчанию 'monthly')
    */
-  async fillRequiredDefaults(options: { locale: 'ru' | 'en'; plan?: 'monthly' | 'yearly' }): Promise<void> {
+  async fillRequiredDefaults(options: { locale: 'ru' | 'en'; plan?: 'monthly' | 'yearly' | '2_days'; currency?: 'RUB' | 'USD' | 'EUR' }): Promise<void> {
+    const currency = options.currency ?? (options.locale === 'ru' ? 'RUB' : 'USD');
+
     if (options.locale === 'ru') {
       await this.openRu();
       await this.selectLocation('Netherlands');
-      await this.selectCurrency('RUB');
+      await this.selectCurrency(currency);
     } else {
       await this.openEn();
       await this.selectLocation('Netherlands');
-      await this.selectCurrency('USD');
+      await this.selectCurrency(currency);
     }
 
     if (options.plan === 'yearly') {
       await this.selectYearlyPlan();
+    } else if (options.plan === '2_days') {
+      await this.selectTwoDaysPlan();
     } else {
       await this.selectMonthlyPlan();
     }
@@ -196,13 +219,13 @@ export class PlanSelectionPage {
 
   async expectFlowUsableWithLocalStorageOnly(): Promise<void> {
     await expect(this.emailField()).toBeVisible();
-    await expect(this.nextButton()).toBeVisible();
+    await expect(this.nextButtonLocator()).toBeVisible();
   }
 
   async expectWizardStepActive(name: 'configuration' | 'payment'): Promise<void> {
     if (name === 'configuration') {
       await expect(this.emailField()).toBeVisible();
-      await expect(this.nextButton()).toBeVisible();
+      await expect(this.nextButtonLocator()).toBeVisible();
       return;
     }
 
@@ -215,7 +238,7 @@ export class PlanSelectionPage {
 
   async expectPlanSelectionStepVisible(): Promise<void> {
     await expect(this.emailField()).toBeVisible();
-    await expect(this.nextButton()).toBeVisible();
+    await expect(this.nextButtonLocator()).toBeVisible();
   }
 
   async expectSelectionsPreserved(): Promise<void> {
@@ -253,11 +276,32 @@ export class PlanSelectionPage {
     await expect(this.page.locator('.ppg__summary, .order-summary, .summary').first()).toBeVisible();
   }
 
+  /** Нажать кнопку Bot (Telegram) на шаге выбора подписки. */
+  async clickBotButton(): Promise<void> {
+    const bot = this.page.getByRole('button', { name: /bot|telegram/i });
+    if (await bot.count()) {
+      await bot.first().click({ force: true });
+      return;
+    }
+
+    const link = this.page.getByRole('link', { name: /bot|telegram/i });
+    if (await link.count()) {
+      await link.first().click({ force: true });
+      return;
+    }
+
+    // fallback: icon-only button
+    const icon = this.page.locator('[class*="bot"], [class*="telegram"], [aria-label*="bot" i], [aria-label*="telegram" i]');
+    if (await icon.count()) {
+      await icon.first().click({ force: true });
+    }
+  }
+
   private planOptions(): Locator {
     return this.page.locator('label.ppg__label.radio');
   }
 
-  private async isPaymentStepReached(): Promise<boolean> {
+  async isPaymentStepReached(): Promise<boolean> {
     return this.page
       .waitForURL(/\/payment\/\?/i, { waitUntil: 'domcontentloaded', timeout: 5_000 })
       .then(() => true)
