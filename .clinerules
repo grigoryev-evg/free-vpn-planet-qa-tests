@@ -28,9 +28,10 @@ free-vpn-planet-qa-tests/
 │   │
 │   ├── tests/               ← тестовые spec-файлы
 │   │   ├── specs/           ← основные E2E spec-файлы
-│   │   │   ├── signup.e2e.ts
-│   │   │   ├── personal_vpn_ru.e2e.ts
-│   │   │   └── personal_vpn_en.e2e.ts
+│   │   │   ├── checkout_matrix.e2e.ts
+│   │   │   ├── planetconfig_ru.e2e.ts
+│   │   │   ├── personal_vpn_en.e2e.ts
+│   │   │   └── payment_contract.e2e.ts
 │   │   ├── browser/         ← UI-тесты (page.goto, fill, click, expect)
 │   │   │   ├── helpers/     ← общие утилиты тестов: cookies, storage, ui_state
 │   │   │   │   ├── cookies.ts
@@ -254,25 +255,32 @@ test.fixme('TC_XXX_007 @slow — Flaky: depends on ...
 ### 4.1. Команды запуска (из package.json)
 
 ```bash
-npm run test:assignment    # только @assignment тесты (~38 сек локально, ~3-5 мин CI, chromium, 7 тестов)
-npm run test:all           # все спецификации (42 теста × 3 браузера = 126 прогонов, workers=4 в CI)
+npm run test:assignment    # только @assignment тесты (chromium, 59 тестов, ~40-60 сек локально, ~3-5 мин CI)
+npm run test:all           # все спецификации (59 тестов × 3 браузера = 177 прогонов, workers=4 в CI)
+npm run test:smoke         # критический путь @smoke (подмножество @assignment)
+npm run test:e2e-api       # API health checks + provider allowlist
+npm run test:signup        # FreeVPNPlanet Sign Up checkout matrix
+npm run test:planetconfig  # PlanetConfig checkout matrix
+npm run test:personal      # Personal FreeVPNPlanet checkout matrix
+npm run test:list          # список обнаруженных тестов
 ```
 
 ### 4.2. Покрытие тестового задания
 
-7 тестов с тегом `@assignment` покрывают все требования TEST_ASSIGNMENT.md:
+59 тестов с тегом `@assignment` покрывают все требования тестового задания:
 
-| # | Тест | Сценарий |
-|---|------|----------|
-| 1 | TC_SIGNUP_001 | Signup + card → hosted checkout |
-| 2 | TC_VPN_RU_001 | RU monthly + card → hosted checkout |
-| 3 | TC_VPN_RU_002 | RU yearly + card → hosted checkout |
-| 4 | TC_VPN_RU_003 | RU monthly + crypto → hosted checkout |
-| 5 | TC_VPN_EN_001 | EN monthly + card → hosted checkout |
-| 6 | TC_VPN_EN_002 | EN yearly + card → hosted checkout |
-| 7 | TC_VPN_EN_003 | EN monthly + crypto → hosted checkout |
+| # | Spec | Test ID | Сценарий |
+|---|------|---------|----------|
+| 1 | `checkout_matrix.e2e.ts` | `TC_FVPN_SIGNUP_CARD_001` | SignUp + Card → Stripe + Link |
+| 2 | `checkout_matrix.e2e.ts` | `TC_FVPN_SIGNUP_CRYPTO_*` | SignUp + 18 crypto → CoinPayments |
+| 3 | `planetconfig_ru.e2e.ts` | `TC_PLANETCONFIG_BOT_001` | Buy via bot → Telegram |
+| 4 | `planetconfig_ru.e2e.ts` | `TC_PLANETCONFIG_RUB_*` | RUB 2 days local (4 methods) + card |
+| 5 | `planetconfig_ru.e2e.ts` | `TC_PLANETCONFIG_*_CARD` | RUB/USD/EUR month card → Stripe |
+| 6 | `planetconfig_ru.e2e.ts` | `TC_PLANETCONFIG_*_CRYPTO_*` | RUB/USD/EUR month/year crypto + all networks |
+| 7 | `personal_vpn_en.e2e.ts` | `TC_PERSONAL_*` | RUB/EUR card, SBP, crypto → providers |
+| 8 | `payment_contract.e2e.ts` | `API_*` | API health checks |
 
-Покрытие: 7/7 = 100%. Все тесты изолированы, без хардкодов.
+Покрытие: 59/59 = 100%. Все тесты изолированы, без хардкодов, используют параметризацию.
 
 ### 4.3. Локальная отладка
 
@@ -322,7 +330,7 @@ npx playwright test --ui
 2. **Не ждать лишнего** — используй `domcontentloaded` вместо `load` где возможно.
 3. **Параметризация вместо копипасты** — один параметризованный тест быстрее 4-х отдельных (меньше перезапусков браузера).
 4. **Только один проект (chromium) для `@assignment`** в CI — 3 браузера избыточны для базового дымового прогона.
-5. **workers: 4 для CI** — полная параллелизация 126 тестов (42 × 3 браузера).
+5. **workers: 4 для CI** — полная параллелизация 177 тестов (59 × 3 браузера).
 
 ---
 
@@ -364,17 +372,18 @@ npx playwright test --ui
 
 Файл: `docs/test-coverage-matrix.md`.
 
-7 сценариев @assignment покрывают все требования TEST_ASSIGNMENT.md:
+59 тестов @assignment покрывают все требования TEST_ASSIGNMENT.md по 4 spec-файлам:
 
 | Requirement | Test ID(s) | Covered |
 |-------------|------------|---------|
-| Sign Up + card → hosted checkout | TC_SIGNUP_001 | ✅ |
-| RU monthly + card → hosted checkout | TC_VPN_RU_001 | ✅ |
-| RU monthly + crypto → hosted checkout | TC_VPN_RU_003 | ✅ |
-| RU yearly + card → hosted checkout | TC_VPN_RU_002 | ✅ |
-| EN monthly + card → hosted checkout | TC_VPN_EN_001 | ✅ |
-| EN monthly + crypto → hosted checkout | TC_VPN_EN_003 | ✅ |
-| EN yearly + card → hosted checkout | TC_VPN_EN_002 | ✅ |
+| Sign Up + card → Stripe + Link | TC_FVPN_SIGNUP_CARD_001 | ✅ |
+| Sign Up + 18 crypto → CoinPayments | TC_FVPN_SIGNUP_CRYPTO_* | ✅ |
+| Buy via bot → Telegram | TC_PLANETCONFIG_BOT_001 | ✅ |
+| RUB 2 days local (4 methods) + card | TC_PLANETCONFIG_RUB_* | ✅ |
+| RUB/USD/EUR month card → Stripe | TC_PLANETCONFIG_*_CARD | ✅ |
+| RUB/USD/EUR month/year crypto + all networks | TC_PLANETCONFIG_*_CRYPTO_* | ✅ |
+| RUB/EUR card, SBP, crypto → providers | TC_PERSONAL_* | ✅ |
+| API health checks | API_* | ✅ |
 
 ### 5.4. Генерация feature-файлов
 
@@ -392,12 +401,12 @@ npx playwright test --ui
 
 Запуск ручной: Actions → Playwright E2E → Run workflow → выбор suite:
 - `assignment` — минимальный набор (только позитивные e2e, chromium, 3-5 мин).
-- `all` — всё подряд (42 теста × 3 браузера = 126 прогонов, ~6-10 мин).
+- `all` — всё подряд (59 тестов × 3 браузера = 177 прогонов, ~6-10 мин).
 
 ### 6.2. Ожидаемое время
 
-- `assignment`: 3-5 минут (chromium, ~7 тестов, 1 worker).
-- `all`: 6-10 минут (3 браузера, 42 теста = 126 прогонов, 4 workers параллельно).
+- `assignment`: 3-5 минут (chromium, 59 тестов, 1 worker).
+- `all`: 6-10 минут (3 браузера, 59 тестов = 177 прогонов, 4 workers параллельно).
 
 ### 6.3. Оптимизация CI скорости
 
@@ -411,7 +420,7 @@ npx playwright test --ui
    ```
 2. **npm ci --prefer-offline** для ускорения установки.
 3. **Один браузер для assignment** — не ставить webkit/firefox.
-4. **workers: 4 для CI** — полная параллелизация 126 тестов (42 × 3 браузера).
+4. **workers: 4 для CI** — полная параллелизация 177 тестов (59 × 3 браузера).
 
 ### 6.4. Важно
 

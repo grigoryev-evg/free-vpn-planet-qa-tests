@@ -5,4 +5,6 @@ blob-report/
 artifacts/
 .cache/
 .env
-
+.claude/
+.playwright-cli/
+.playwright-wizard-mcp/
